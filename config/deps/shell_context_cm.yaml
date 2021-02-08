@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: shell-context
+  namespace: system
+data:
+  .bash_history: ""

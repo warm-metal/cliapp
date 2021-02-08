@@ -1,0 +1,20 @@
+# permissions for end users to view cliapps.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cliapp-viewer-role
+rules:
+- apiGroups:
+  - core.cliapp.warmmetal.tech
+  resources:
+  - cliapps
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - core.cliapp.warmmetal.tech
+  resources:
+  - cliapps/status
+  verbs:
+  - get

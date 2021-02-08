@@ -1,0 +1,24 @@
+# permissions for end users to edit cliapps.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cliapp-editor-role
+rules:
+- apiGroups:
+  - core.cliapp.warmmetal.tech
+  resources:
+  - cliapps
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - core.cliapp.warmmetal.tech
+  resources:
+  - cliapps/status
+  verbs:
+  - get

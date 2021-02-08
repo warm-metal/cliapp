@@ -1,0 +1,122 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.4.1
+  creationTimestamp: null
+  name: cliapps.core.cliapp.warmmetal.tech
+spec:
+  group: core.cliapp.warmmetal.tech
+  names:
+    kind: CliApp
+    listKind: CliAppList
+    plural: cliapps
+    singular: cliapp
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: CliApp is the Schema for the cliapps API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: CliAppSpec defines the desired state of CliApp
+            properties:
+              command:
+                description: Set the command to be executed when client runs the app.
+                  It is usually an executable binary. It should be found in the PATH,
+                  or an absolute path to the binary.
+                items:
+                  type: string
+                type: array
+              distrio:
+                description: Distrio the app dependents. The default is alpine.
+                type: string
+              dockerfile:
+                description: Specify a Dockerfile to build a image used to run the
+                  app. Http(s) URI is also supported. Only one of Image or Dockerfile
+                  can be set.
+                type: string
+              env:
+                description: Environment variables in the form of "key=value".
+                items:
+                  type: string
+                type: array
+              hostpath:
+                description: Host paths would be mounted to the app. Each HostPath
+                  can be an absolute host path, or in the form of "hostpath:mount-point".
+                items:
+                  type: string
+                type: array
+              image:
+                description: Specify the image the app uses. Only one of Image or
+                  Dockerfile can be set.
+                type: string
+              shell:
+                description: The shell interpreter you preferred. Can be either bash
+                  or zsh.
+                type: string
+              targetPhase:
+                description: 'The target phase the app should achieve. Valid values
+                  are: - "Rest" (default): The app is installed but not started; -
+                  "Live": The app is running;'
+                enum:
+                - Rest
+                - Recovering
+                - Building
+                - Live
+                - WaitingForSessions
+                - ShuttingDown
+                type: string
+            type: object
+          status:
+            description: CliAppStatus defines the observed state of CliApp
+            properties:
+              lastPhaseTransition:
+                description: Timestamp of the last phase transition
+                format: date-time
+                type: string
+              phase:
+                description: 'Show the app state. Valid values are: - "Rest" (default):
+                  The app is installed but not started; - "Recovering": The app is
+                  starting; - "Building": The app is waiting for image building; -
+                  "Live": The app is running; - "WaitingForSessions": The app is waiting
+                  for new sessions and will be shutdown later; - "ShuttingDown": The
+                  app is shutting down.'
+                enum:
+                - Rest
+                - Recovering
+                - Building
+                - Live
+                - WaitingForSessions
+                - ShuttingDown
+                type: string
+              podName:
+                description: Specify the Pod name if app is in phase Live.
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

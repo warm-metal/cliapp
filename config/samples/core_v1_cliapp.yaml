@@ -1,0 +1,11 @@
+apiVersion: core.cliapp.warmmetal.tech/v1
+kind: CliApp
+metadata:
+  name: ctr
+spec:
+  image: docker.io/warmmetal/ctr:v1
+  targetPhase: Live
+  command:
+    - ctr
+  hostpath:
+    - /var/run/containerd/containerd.sock
