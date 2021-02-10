@@ -26,7 +26,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	corev1 "github.com/warmmetal/cliapp/api/v1"
+	corev1 "github.com/warm-metal/cliapp/api/v1"
 )
 
 // CliAppReconciler reconciles a CliApp object

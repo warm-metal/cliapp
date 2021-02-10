@@ -18,7 +18,7 @@ package main
 
 import (
 	"flag"
-	"github.com/warmmetal/cliapp/utils"
+	"github.com/warm-metal/cliapp/utils"
 	"os"
 	"time"
 
@@ -33,8 +33,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	appcorev1 "github.com/warmmetal/cliapp/api/v1"
-	"github.com/warmmetal/cliapp/controllers"
+	appcorev1 "github.com/warm-metal/cliapp/api/v1"
+	"github.com/warm-metal/cliapp/controllers"
 	//+kubebuilder:scaffold:imports
 )
 

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-logr/logr"
-	appcorev1 "github.com/warmmetal/cliapp/api/v1"
+	appcorev1 "github.com/warm-metal/cliapp/api/v1"
 	"golang.org/x/xerrors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,6 +18,7 @@ const (
 )
 
 func (r *CliAppReconciler) startApp(ctx context.Context, app *appcorev1.CliApp, log logr.Logger) error {
+	// FIXME watch all these pods and repair them on fail
 	manifest, err := r.convertToManifest(app)
 	if err != nil {
 		log.Error(err, "unable to generate manifest", "spec", app.Spec)
@@ -32,6 +33,7 @@ func (r *CliAppReconciler) startApp(ctx context.Context, app *appcorev1.CliApp, 
 }
 
 const (
+	// FIXME make images below configurable
 	shellContextSyncImage = "docker.io/warmmetal/f2cm:v0.1.0"
 	appContextImage       = "docker.io/warmmetal/app-context:v0.1.0"
 	shellContextSidecar   = "shell-context-sync"
@@ -45,9 +47,7 @@ func (r *CliAppReconciler) convertToManifest(app *appcorev1.CliApp) (*corev1.Pod
 	var hostVolumes []corev1.Volume
 	var hostMounts []corev1.VolumeMount
 
-	//propagation := corev1.MountPropagationBidirectional
 	for i, path := range app.Spec.HostPath {
-		// FIXME parse hostpath
 		mountPair := strings.Split(strings.TrimSpace(path), ":")
 		if len(mountPair) == 0 {
 			return nil, xerrors.Errorf("invalid hostpath spec")
@@ -78,7 +78,6 @@ func (r *CliAppReconciler) convertToManifest(app *appcorev1.CliApp) (*corev1.Pod
 		hostMounts = append(hostMounts, corev1.VolumeMount{
 			Name:      volume,
 			MountPath: mountpoint,
-			//MountPropagation: &propagation,
 		})
 	}
 

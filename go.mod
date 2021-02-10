@@ -1,4 +1,4 @@
-module github.com/warmmetal/cliapp
+module github.com/warm-metal/cliapp
 
 go 1.15
 
