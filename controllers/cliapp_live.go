@@ -43,7 +43,7 @@ func (r *CliAppReconciler) makeAppLive(
 		}
 
 		fallthrough
-	case appcorev1.CliAppPhaseShuttingDown:
+	case appcorev1.CliAppPhaseShuttingDown, appcorev1.CliAppPhaseWaitingForSessions:
 		fallthrough
 	case appcorev1.CliAppPhaseRest:
 		if err = r.transitPhaseTo(ctx, log, app, appcorev1.CliAppPhaseRecovering); err != nil {
@@ -96,11 +96,6 @@ func (r *CliAppReconciler) makeAppLive(
 	case appcorev1.CliAppPhaseBuilding:
 		// FIXME check the builder state and transit to CliAppPhaseRecovering
 		panic("not implemented")
-
-	case appcorev1.CliAppPhaseWaitingForSessions:
-		if err = r.transitPhaseTo(ctx, log, app, appcorev1.CliAppPhaseLive); err != nil {
-			return
-		}
 	default:
 		panic(app.Status.Phase)
 	}

@@ -5,7 +5,7 @@ metadata:
   name: cliapp-viewer-role
 rules:
 - apiGroups:
-  - core.cliapp.warmmetal.tech
+  - core.cliapp.warm-metal.tech
   resources:
   - cliapps
   verbs:
@@ -13,7 +13,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - core.cliapp.warmmetal.tech
+  - core.cliapp.warm-metal.tech
   resources:
   - cliapps/status
   verbs:

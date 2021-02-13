@@ -1,4 +1,4 @@
-apiVersion: core.cliapp.warmmetal.tech/v1
+apiVersion: core.cliapp.warm-metal.tech/v1
 kind: CliApp
 metadata:
   name: ctr

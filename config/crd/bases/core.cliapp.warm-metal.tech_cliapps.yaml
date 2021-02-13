@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: cliapps.core.cliapp.warmmetal.tech
+  name: cliapps.core.cliapp.warm-metal.tech
 spec:
-  group: core.cliapp.warmmetal.tech
+  group: core.cliapp.warm-metal.tech
   names:
     kind: CliApp
     listKind: CliAppList
