@@ -18,8 +18,8 @@ limitations under the License.
 package cliapp
 
 import (
-	v1 "pkg/informers/externalversions/cliapp/v1"
-	internalinterfaces "pkg/informers/externalversions/internalinterfaces"
+	v1 "github.com/warm-metal/cliapp/pkg/informers/externalversions/cliapp/v1"
+	internalinterfaces "github.com/warm-metal/cliapp/pkg/informers/externalversions/internalinterfaces"
 )
 
 // Interface provides access to each of this group's versions.

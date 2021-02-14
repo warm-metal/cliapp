@@ -33,8 +33,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	appcorev1 "github.com/warm-metal/cliapp/api/v1"
 	"github.com/warm-metal/cliapp/controllers"
+	appcorev1 "github.com/warm-metal/cliapp/pkg/apis/cliapp/v1"
 	//+kubebuilder:scaffold:imports
 )
 

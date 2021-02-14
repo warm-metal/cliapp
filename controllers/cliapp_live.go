@@ -3,7 +3,7 @@ package controllers
 import (
 	"context"
 	"github.com/go-logr/logr"
-	appcorev1 "github.com/warm-metal/cliapp/api/v1"
+	appcorev1 "github.com/warm-metal/cliapp/pkg/apis/cliapp/v1"
 	"golang.org/x/xerrors"
 	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"

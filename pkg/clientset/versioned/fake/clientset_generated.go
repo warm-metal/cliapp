@@ -18,10 +18,9 @@ limitations under the License.
 package fake
 
 import (
-	clientset "pkg/clientset/versioned"
-	cliappv1 "pkg/clientset/versioned/typed/cliapp/v1"
-	fakecliappv1 "pkg/clientset/versioned/typed/cliapp/v1/fake"
-
+	clientset "github.com/warm-metal/cliapp/pkg/clientset/versioned"
+	cliappv1 "github.com/warm-metal/cliapp/pkg/clientset/versioned/typed/cliapp/v1"
+	fakecliappv1 "github.com/warm-metal/cliapp/pkg/clientset/versioned/typed/cliapp/v1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"

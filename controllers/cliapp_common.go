@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-logr/logr"
-	appcorev1 "github.com/warm-metal/cliapp/api/v1"
+	appcorev1 "github.com/warm-metal/cliapp/pkg/apis/cliapp/v1"
 	"github.com/warm-metal/cliapp/utils"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

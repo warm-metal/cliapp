@@ -18,13 +18,13 @@ limitations under the License.
 package externalversions
 
 import (
-	versioned "pkg/clientset/versioned"
-	cliapp "pkg/informers/externalversions/cliapp"
-	internalinterfaces "pkg/informers/externalversions/internalinterfaces"
 	reflect "reflect"
 	sync "sync"
 	time "time"
 
+	versioned "github.com/warm-metal/cliapp/pkg/clientset/versioned"
+	cliapp "github.com/warm-metal/cliapp/pkg/informers/externalversions/cliapp"
+	internalinterfaces "github.com/warm-metal/cliapp/pkg/informers/externalversions/internalinterfaces"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

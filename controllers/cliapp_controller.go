@@ -26,7 +26,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	corev1 "github.com/warm-metal/cliapp/api/v1"
+	appcorev1 "github.com/warm-metal/cliapp/pkg/apis/cliapp/v1"
 )
 
 // CliAppReconciler reconciles a CliApp object
@@ -57,7 +57,7 @@ type CliAppReconciler struct {
 func (r *CliAppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, err error) {
 	log := r.Log.WithValues("cliapp", req.NamespacedName)
 
-	app := corev1.CliApp{}
+	app := appcorev1.CliApp{}
 	if err = r.Get(ctx, req.NamespacedName, &app); err != nil {
 		log.Error(err, "unable to fetch app", "app", req.NamespacedName.String())
 		err = client.IgnoreNotFound(err)
@@ -74,9 +74,9 @@ func (r *CliAppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res
 	}
 
 	switch app.Spec.TargetPhase {
-	case corev1.CliAppPhaseRest:
+	case appcorev1.CliAppPhaseRest:
 		return r.makeAppRest(ctx, log, &app)
-	case corev1.CliAppPhaseLive:
+	case appcorev1.CliAppPhaseLive:
 		return r.makeAppLive(ctx, log, &app)
 	default:
 		err = xerrors.Errorf("TargetPhase can only be either Rest or Live")
@@ -87,6 +87,6 @@ func (r *CliAppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res
 // SetupWithManager sets up the controller with the Manager.
 func (r *CliAppReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&corev1.CliApp{}).
+		For(&appcorev1.CliApp{}).
 		Complete(r)
 }

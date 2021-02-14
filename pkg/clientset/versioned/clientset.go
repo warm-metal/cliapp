@@ -19,8 +19,8 @@ package versioned
 
 import (
 	"fmt"
-	cliappv1 "pkg/clientset/versioned/typed/cliapp/v1"
 
+	cliappv1 "github.com/warm-metal/cliapp/pkg/clientset/versioned/typed/cliapp/v1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"

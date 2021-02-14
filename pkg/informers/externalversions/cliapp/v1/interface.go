@@ -18,7 +18,7 @@ limitations under the License.
 package v1
 
 import (
-	internalinterfaces "pkg/informers/externalversions/internalinterfaces"
+	internalinterfaces "github.com/warm-metal/cliapp/pkg/informers/externalversions/internalinterfaces"
 )
 
 // Interface provides access to all the informers in this group version.

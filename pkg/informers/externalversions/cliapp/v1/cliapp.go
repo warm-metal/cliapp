@@ -19,12 +19,12 @@ package v1
 
 import (
 	"context"
-	versioned "pkg/clientset/versioned"
-	internalinterfaces "pkg/informers/externalversions/internalinterfaces"
-	v1 "pkg/listers/cliapp/v1"
 	time "time"
 
 	cliappv1 "github.com/warm-metal/cliapp/pkg/apis/cliapp/v1"
+	versioned "github.com/warm-metal/cliapp/pkg/clientset/versioned"
+	internalinterfaces "github.com/warm-metal/cliapp/pkg/informers/externalversions/internalinterfaces"
+	v1 "github.com/warm-metal/cliapp/pkg/listers/cliapp/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"

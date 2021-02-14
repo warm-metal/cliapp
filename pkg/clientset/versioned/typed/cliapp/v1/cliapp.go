@@ -19,10 +19,10 @@ package v1
 
 import (
 	"context"
-	scheme "pkg/clientset/versioned/scheme"
 	"time"
 
 	v1 "github.com/warm-metal/cliapp/pkg/apis/cliapp/v1"
+	scheme "github.com/warm-metal/cliapp/pkg/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
