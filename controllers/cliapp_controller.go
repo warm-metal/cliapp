@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"golang.org/x/xerrors"
+	corev1 "k8s.io/api/core/v1"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -27,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	appcorev1 "github.com/warm-metal/cliapp/pkg/apis/cliapp/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 // CliAppReconciler reconciles a CliApp object
@@ -60,7 +62,14 @@ func (r *CliAppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res
 	app := appcorev1.CliApp{}
 	if err = r.Get(ctx, req.NamespacedName, &app); err != nil {
 		log.Error(err, "unable to fetch app", "app", req.NamespacedName.String())
-		err = client.IgnoreNotFound(err)
+		if apierrors.IsNotFound(err) {
+			err := r.DeleteAllOf(context.TODO(), &corev1.Pod{},
+				client.InNamespace(req.Namespace), client.MatchingLabels(map[string]string{appLabel: app.Name}),
+			)
+			if client.IgnoreNotFound(err) != nil {
+				log.Error(err, "unable to delete pod")
+			}
+		}
 		return
 	}
 

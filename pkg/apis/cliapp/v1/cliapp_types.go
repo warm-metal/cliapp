@@ -39,7 +39,6 @@ type CliAppSpec struct {
 
 	// Set the command to be executed when client runs the app.
 	// It is usually an executable binary. It should be found in the PATH, or an absolute path to the binary.
-	// +optional
 	Command []string `json:"command,omitempty"`
 
 	// Host paths would be mounted to the app.

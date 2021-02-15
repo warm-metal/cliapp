@@ -18,7 +18,7 @@ package main
 
 import (
 	"flag"
-	"github.com/warm-metal/cliapp/utils"
+	"github.com/warm-metal/cliapp/pkg/utils"
 	"os"
 	"time"
 
