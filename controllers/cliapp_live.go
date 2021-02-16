@@ -74,7 +74,8 @@ func (r *CliAppReconciler) makeAppLive(
 					return
 				}
 
-				if err = r.transitPhaseTo(ctx, log, app, appcorev1.CliAppPhaseLive, ready[0].Name); err != nil {
+				app.Status.PodName = ready[0].Name
+				if err = r.transitPhaseTo(ctx, log, app, appcorev1.CliAppPhaseLive); err != nil {
 					return
 				}
 				return
@@ -94,8 +95,22 @@ func (r *CliAppReconciler) makeAppLive(
 		result.Requeue = true
 
 	case appcorev1.CliAppPhaseBuilding:
-		// FIXME check the builder state and transit to CliAppPhaseRecovering
-		panic("not implemented")
+		if len(app.Spec.Image) == 0 {
+			image, err := r.testImage(app)
+			if err != nil {
+				result.Requeue = true
+				return result, err
+			}
+
+			app.Spec.Image = image
+		}
+
+		if err = r.transitPhaseTo(ctx, log, app, appcorev1.CliAppPhaseRecovering); err != nil {
+			return
+		}
+		result.Requeue = true
+		return
+
 	default:
 		panic(app.Status.Phase)
 	}

@@ -73,7 +73,13 @@ func (r *CliAppReconciler) makeAppRest(ctx context.Context, log logr.Logger, app
 		return
 
 	case appcorev1.CliAppPhaseBuilding:
-		// FIXME cancel building and go to CliAppPhaseShuttingDown
+		r.cancel(app)
+		if err = r.transitPhaseTo(ctx, log, app, appcorev1.CliAppPhaseShuttingDown); err != nil {
+			return
+		}
+		result.Requeue = true
+		return
+
 	default:
 		panic(app.Status.Phase)
 	}

@@ -37,8 +37,10 @@ type CliAppReconciler struct {
 	Log    logr.Logger
 	Scheme *runtime.Scheme
 
+	BuilderEndpoint string
+	ImageBuilder
+
 	DurationIdleLiveLasts time.Duration
-	BuilderEndpoint       string
 	ControllerNamespace   string
 }
 

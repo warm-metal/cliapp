@@ -8,4 +8,4 @@ webhook:
   port: 9443
 leaderElection:
   leaderElect: true
-  resourceName: 337df6b6.cliapp.warmmetal.tech
+  resourceName: 337df6b6.cliapp.warm-metal.tech

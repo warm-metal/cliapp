@@ -45,7 +45,6 @@ var (
 
 func init() {
 	utilruntime.Must(k8sScheme.AddToScheme(scheme))
-
 	utilruntime.Must(appcorev1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
@@ -81,7 +80,7 @@ func main() {
 		Port:                   9443,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "337df6b6.cliapp.warmmetal.tech",
+		LeaderElectionID:       "337df6b6.cliapp.warm-metal.tech",
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -95,6 +94,7 @@ func main() {
 		DurationIdleLiveLasts: idleLiveLasts,
 		BuilderEndpoint:       builderSvc,
 		ControllerNamespace:   utils.GetCurrentNamespace(),
+		ImageBuilder:          controllers.InitImageBuilderOrDie(builderSvc),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CliApp")
 		os.Exit(1)

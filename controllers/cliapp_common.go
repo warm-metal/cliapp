@@ -36,17 +36,18 @@ func groupPods(podList *corev1.PodList) (
 }
 
 func (r *CliAppReconciler) transitPhaseTo(
-	ctx context.Context, log logr.Logger, app *appcorev1.CliApp, phase appcorev1.CliAppPhase, podName ...string,
+	ctx context.Context, log logr.Logger, app *appcorev1.CliApp, phase appcorev1.CliAppPhase,
 ) error {
 	app.Status.Phase = phase
 	app.Status.LastPhaseTransition = metav1.Now()
 
 	if phase == appcorev1.CliAppPhaseLive {
-		if len(podName) == 0 || len(podName[0]) == 0 {
+		if len(app.Status.PodName) == 0 {
 			panic("set Pod name along with phase Live")
 		}
-
-		app.Status.PodName = podName[0]
+		if len(app.Spec.Image) == 0 {
+			panic("set Image along with phase Live")
+		}
 	}
 
 	if phase == appcorev1.CliAppPhaseRest {
