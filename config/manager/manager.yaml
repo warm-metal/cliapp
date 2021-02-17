@@ -29,6 +29,7 @@ spec:
         - /manager
         args:
         - --leader-elect
+        - --builder-svc=buildkitd.dev:1234
         image: controller:latest
         name: manager
         securityContext:

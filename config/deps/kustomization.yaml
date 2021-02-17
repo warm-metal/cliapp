@@ -2,3 +2,4 @@ resources:
 - csi-image.yaml
 - shell_context_cm.yaml
 - shell_context_rbac.yaml
+- session-gate.yaml

@@ -35,7 +35,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	appcorev1 "github.com/warm-metal/cliapp/api/v1"
+	appcorev1 "github.com/warm-metal/cliapp/pkg/apis/cliapp/v1"
 	//+kubebuilder:scaffold:imports
 )
 

@@ -43,8 +43,17 @@ spec:
                 items:
                   type: string
                 type: array
+              container:
+                description: Set the target container name if the ForObject has more
+                  than one containers.
+                type: string
               distrio:
-                description: Distrio the app dependents. The default is alpine.
+                description: 'Distrio the app dependents. The default is alpine. Valid
+                  values are: - "Alpine" (default): The app works on Alpine; - "Ubuntu:
+                  The app works on Ubuntu.'
+                enum:
+                - Alpine
+                - Ubuntu
                 type: string
               dockerfile:
                 description: Specify a Dockerfile to build a image used to run the
@@ -56,6 +65,12 @@ spec:
                 items:
                   type: string
                 type: array
+              fork:
+                description: Specify that the app will fork a workload in the same
+                  namespace. The workload could be either of Deployment, StatefulSet,
+                  DaemonSet, ReplicaSet, (Cron)Job, or Pod. The valid format would
+                  be Kind/Name.
+                type: string
               hostpath:
                 description: Host paths would be mounted to the app. Each HostPath
                   can be an absolute host path, or in the form of "hostpath:mount-point".
@@ -67,13 +82,14 @@ spec:
                   Dockerfile can be set.
                 type: string
               shell:
-                description: The shell interpreter you preferred. Can be either bash
-                  or zsh.
+                description: 'The shell interpreter you preferred. Can be either bash
+                  or zsh. Valid values are: - "Bash" (default): The app will run in
+                  Bash; - "Zsh: The app will run in Zsh.'
                 type: string
               targetPhase:
                 description: 'The target phase the app should achieve. Valid values
                   are: - "Rest" (default): The app is installed but not started; -
-                  "Live": The app is running;'
+                  "Live": The app is running.'
                 enum:
                 - Rest
                 - Recovering
@@ -82,10 +98,17 @@ spec:
                 - WaitingForSessions
                 - ShuttingDown
                 type: string
+              uninstall:
+                description: Set if uninstalls the App when it transits out of phase
+                  Live
+                type: boolean
             type: object
           status:
             description: CliAppStatus defines the observed state of CliApp
             properties:
+              error:
+                description: Specify Errors on reconcile
+                type: string
               lastPhaseTransition:
                 description: Timestamp of the last phase transition
                 format: date-time

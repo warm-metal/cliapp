@@ -174,14 +174,14 @@ func (r *CliAppReconciler) fetchForkTargetPod(
 			panic(info.Mapping.GroupVersionKind)
 		}
 
-		pod, failed := clientset.CoreV1().Pods(info.Namespace).Get(ctx, info.Name, opt)
+		po, failed := clientset.CoreV1().Pods(info.Namespace).Get(ctx, info.Name, opt)
 		if failed != nil {
 			err = xerrors.Errorf("can't fetch %s/%s: %s", info.Mapping.GroupVersionKind, info.Name, failed)
 			return
 		}
 
-		podTmpl = &pod.Spec
-		labels = pod.Labels
+		podTmpl = &po.Spec
+		labels = po.Labels
 	default:
 		err = xerrors.Errorf("object %s/%s is not supported", info.Mapping.GroupVersionKind, info.Name)
 		return
