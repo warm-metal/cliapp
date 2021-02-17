@@ -20,6 +20,7 @@ import (
 	"context"
 	"golang.org/x/xerrors"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/cli-runtime/pkg/resource"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -33,6 +34,7 @@ import (
 
 // CliAppReconciler reconciles a CliApp object
 type CliAppReconciler struct {
+	RestClient resource.RESTClientGetter
 	client.Client
 	Log    logr.Logger
 	Scheme *runtime.Scheme

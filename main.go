@@ -19,7 +19,13 @@ package main
 import (
 	"flag"
 	"github.com/warm-metal/cliapp/pkg/utils"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/cli-runtime/pkg/resource"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/discovery/cached/memory"
+	"k8s.io/client-go/rest"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"time"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -91,6 +97,7 @@ func main() {
 	}
 
 	if err = (&controllers.CliAppReconciler{
+		RestClient:            clientGetter(mgr),
 		Client:                mgr.GetClient(),
 		Log:                   ctrl.Log.WithName("controllers").WithName("CliApp"),
 		Scheme:                mgr.GetScheme(),
@@ -119,4 +126,30 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+func clientGetter(mgr manager.Manager) resource.RESTClientGetter {
+	return &mgrClientGetter{
+		config:    mgr.GetConfig(),
+		mapper:    mgr.GetRESTMapper(),
+		discovery: memory.NewMemCacheClient(discovery.NewDiscoveryClientForConfigOrDie(mgr.GetConfig())),
+	}
+}
+
+type mgrClientGetter struct {
+	config    *rest.Config
+	mapper    meta.RESTMapper
+	discovery discovery.CachedDiscoveryInterface
+}
+
+func (m mgrClientGetter) ToRESTConfig() (*rest.Config, error) {
+	return m.config, nil
+}
+
+func (m mgrClientGetter) ToDiscoveryClient() (discovery.CachedDiscoveryInterface, error) {
+	return m.discovery, nil
+}
+
+func (m mgrClientGetter) ToRESTMapper() (meta.RESTMapper, error) {
+	return m.mapper, nil
 }

@@ -27,6 +27,16 @@ import (
 type CliAppSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
+	// Specify that the app will fork a workload in the same namespace.
+	// The workload could be either of Deployment, StatefulSet, DaemonSet, ReplicaSet, (Cron)Job, or Pod.
+	// The valid format would be Kind/Name.
+	// +optional
+	ForkObject string `json:"fork,omitempty"`
+
+	// Set the target container name if the ForObject has more than one containers.
+	// +optional
+	ForkContainer string `json:"container,omitempty"`
+
 	// Specify the image the app uses.
 	// Only one of Image or Dockerfile can be set.
 	// +optional
