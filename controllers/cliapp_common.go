@@ -6,6 +6,7 @@ import (
 	"github.com/go-logr/logr"
 	appcorev1 "github.com/warm-metal/cliapp/pkg/apis/cliapp/v1"
 	"github.com/warm-metal/cliapp/pkg/utils"
+	"golang.org/x/xerrors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -57,6 +58,22 @@ func (r *CliAppReconciler) transitPhaseTo(
 	if err := r.Status().Update(ctx, app); err != nil {
 		log.Error(err, "unable to update app")
 		return err
+	}
+
+	return nil
+}
+
+func validateApp(app *appcorev1.CliApp) error {
+	if len(app.Spec.Image) == 0 && len(app.Spec.Dockerfile) == 0 {
+		return xerrors.Errorf("specify either image or dockerfile for the app")
+	}
+
+	if len(app.Spec.Command) == 0 {
+		return xerrors.Errorf("specify command will be executed")
+	}
+
+	if app.Spec.TargetPhase == "" {
+		return xerrors.Errorf("TargetPhase is not set")
 	}
 
 	return nil

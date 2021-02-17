@@ -66,6 +66,9 @@ func main() {
 	var builderSvc string
 	flag.StringVar(&builderSvc, "builder-svc", "", "buildkitd endpoint used to build image for app")
 
+	var appContextImage string
+	flag.StringVar(&appContextImage, "app-context", "", "The context image to start an app")
+
 	opts := zap.Options{
 		Development: true,
 	}
@@ -95,6 +98,7 @@ func main() {
 		BuilderEndpoint:       builderSvc,
 		ControllerNamespace:   utils.GetCurrentNamespace(),
 		ImageBuilder:          controllers.InitImageBuilderOrDie(builderSvc),
+		AppContextImage:       appContextImage,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CliApp")
 		os.Exit(1)

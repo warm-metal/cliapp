@@ -52,18 +52,40 @@ type CliAppSpec struct {
 
 	// Distrio the app dependents. The default is alpine.
 	// +optional
-	Distrio string `json:"distrio,omitempty"`
+	// Valid values are:
+	// - "Alpine" (default): The app works on Alpine;
+	// - "Ubuntu: The app works on Ubuntu.
+	Distrio CliAppDistrio `json:"distrio,omitempty"`
 
 	// The shell interpreter you preferred. Can be either bash or zsh.
 	// +optional
-	Shell string `json:"shell,omitempty"`
+	// Valid values are:
+	// - "Bash" (default): The app will run in Bash;
+	// - "Zsh: The app will run in Zsh.
+	Shell CliAppShell `json:"shell,omitempty"`
 
 	// The target phase the app should achieve.
 	// Valid values are:
 	// - "Rest" (default): The app is installed but not started;
-	// - "Live": The app is running;
+	// - "Live": The app is running.
 	TargetPhase CliAppPhase `json:"targetPhase,omitempty"`
 }
+
+// CliAppDistrio describes Linux Distrio the app depends.
+// +kubebuilder:validation:Enum=Alpine;Ubuntu
+type CliAppDistrio string
+
+const (
+	CliAppDisrioAlpine CliAppDistrio = "Alpine"
+	CliAppDisrioUbuntu CliAppDistrio = "Ubuntu"
+)
+
+type CliAppShell string
+
+const (
+	CliAppShellBash CliAppShell = "Bash"
+	CliAppShellZsh  CliAppShell = "Zsh"
+)
 
 // CliAppStatus defines the observed state of CliApp
 type CliAppStatus struct {
@@ -88,6 +110,10 @@ type CliAppStatus struct {
 	// Specify the Pod name if app is in phase Live.
 	// +optional
 	PodName string `json:"podName,omitempty"`
+
+	// Specify Errors on reconcile
+	// +optional
+	Error string `json:"error,omitempty"`
 }
 
 // CliAppPhase describes the app status.

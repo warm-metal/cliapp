@@ -42,6 +42,8 @@ type CliAppReconciler struct {
 
 	DurationIdleLiveLasts time.Duration
 	ControllerNamespace   string
+
+	AppContextImage string
 }
 
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;create;update;patch;delete
@@ -61,8 +63,8 @@ type CliAppReconciler struct {
 func (r *CliAppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, err error) {
 	log := r.Log.WithValues("cliapp", req.NamespacedName)
 
-	app := appcorev1.CliApp{}
-	if err = r.Get(ctx, req.NamespacedName, &app); err != nil {
+	app := &appcorev1.CliApp{}
+	if err = r.Get(ctx, req.NamespacedName, app); err != nil {
 		log.Error(err, "unable to fetch app", "app", req.NamespacedName.String())
 		if apierrors.IsNotFound(err) {
 			err := r.DeleteAllOf(context.TODO(), &corev1.Pod{},
@@ -75,8 +77,7 @@ func (r *CliAppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res
 		return
 	}
 
-	if app.Spec.TargetPhase == "" {
-		err = xerrors.Errorf("TargetPhase is not set")
+	if err = validateApp(app); err != nil {
 		return
 	}
 
@@ -86,9 +87,9 @@ func (r *CliAppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res
 
 	switch app.Spec.TargetPhase {
 	case appcorev1.CliAppPhaseRest:
-		return r.makeAppRest(ctx, log, &app)
+		return r.makeAppRest(ctx, log, app)
 	case appcorev1.CliAppPhaseLive:
-		return r.makeAppLive(ctx, log, &app)
+		return r.makeAppLive(ctx, log, app)
 	default:
 		err = xerrors.Errorf("TargetPhase can only be either Rest or Live")
 		return

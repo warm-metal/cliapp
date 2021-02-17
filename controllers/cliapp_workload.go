@@ -33,9 +33,10 @@ func (r *CliAppReconciler) startApp(ctx context.Context, app *appcorev1.CliApp, 
 }
 
 const (
-	// FIXME make images below configurable
 	shellContextSyncImage = "docker.io/warmmetal/f2cm:v0.1.0"
-	appContextImage       = "docker.io/warmmetal/app-context:v0.1.0"
+	appContextImage       = "docker.io/warmmetal/app-context-%s-%s:v0.1.0"
+	defaultShell          = "bash"
+	defaultDistrio        = "alpine"
 	shellContextSidecar   = "shell-context-sync"
 	appContainer          = "workspace"
 	appRoot               = "/app-root"
@@ -81,7 +82,6 @@ func (r *CliAppReconciler) convertToManifest(app *appcorev1.CliApp) (*corev1.Pod
 		})
 	}
 
-	// FIXME HTTP proxy configuration
 	sharedCtx := corev1.VolumeMount{
 		Name:      "shell-context",
 		MountPath: "/root",
@@ -106,6 +106,21 @@ func (r *CliAppReconciler) convertToManifest(app *appcorev1.CliApp) (*corev1.Pod
 		envs = append(envs, env)
 	}
 
+	ctxImage := r.AppContextImage
+	if len(ctxImage) == 0 {
+		sh := appcorev1.CliAppShellBash
+		distrio := appcorev1.CliAppDisrioAlpine
+		if len(app.Spec.Shell) > 0 {
+			sh = app.Spec.Shell
+		}
+
+		if len(app.Spec.Distrio) > 0 {
+			distrio = app.Spec.Distrio
+		}
+
+		ctxImage = fmt.Sprintf(appContextImage, strings.ToLower(string(sh)), strings.ToLower(string(distrio)))
+	}
+
 	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-%s", app.Name, rand.String(5)),
@@ -124,7 +139,7 @@ func (r *CliAppReconciler) convertToManifest(app *appcorev1.CliApp) (*corev1.Pod
 			Containers: []corev1.Container{
 				{
 					Name:  appContainer,
-					Image: appContextImage,
+					Image: ctxImage,
 					Env: append(envs, corev1.EnvVar{
 						Name:  "APP_ROOT",
 						Value: appRoot,
