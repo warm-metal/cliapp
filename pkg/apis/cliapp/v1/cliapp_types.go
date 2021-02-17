@@ -79,6 +79,10 @@ type CliAppSpec struct {
 	// - "Rest" (default): The app is installed but not started;
 	// - "Live": The app is running.
 	TargetPhase CliAppPhase `json:"targetPhase,omitempty"`
+
+	// Set if uninstalls the App when it transits out of phase Live
+	// +optional
+	UninstallUnlessLive bool `json:"uninstall,omitempty"`
 }
 
 // CliAppDistrio describes Linux Distrio the app depends.
@@ -86,8 +90,8 @@ type CliAppSpec struct {
 type CliAppDistrio string
 
 const (
-	CliAppDisrioAlpine CliAppDistrio = "Alpine"
-	CliAppDisrioUbuntu CliAppDistrio = "Ubuntu"
+	CliAppDistrioAlpine CliAppDistrio = "Alpine"
+	CliAppDistrioUbuntu CliAppDistrio = "Ubuntu"
 )
 
 type CliAppShell string

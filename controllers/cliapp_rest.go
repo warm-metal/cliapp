@@ -19,11 +19,17 @@ func (r *CliAppReconciler) makeAppRest(ctx context.Context, log logr.Logger, app
 
 	switch app.Status.Phase {
 	case appcorev1.CliAppPhaseLive:
-		if err = r.transitPhaseTo(ctx, log, app, appcorev1.CliAppPhaseWaitingForSessions); err != nil {
+		targetPhase := appcorev1.CliAppPhaseShuttingDown
+		result.Requeue = true
+		if !app.Spec.UninstallUnlessLive {
+			targetPhase = appcorev1.CliAppPhaseWaitingForSessions
+			result.RequeueAfter = r.DurationIdleLiveLasts
+		}
+
+		if err = r.transitPhaseTo(ctx, log, app, targetPhase); err != nil {
 			return
 		}
 
-		result.RequeueAfter = r.DurationIdleLiveLasts
 		return
 	case appcorev1.CliAppPhaseWaitingForSessions:
 		now := metav1.Now()

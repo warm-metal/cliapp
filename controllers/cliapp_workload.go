@@ -56,7 +56,7 @@ func (r *CliAppReconciler) convertToManifest(app *appcorev1.CliApp) (*corev1.Pod
 	ctxImage := r.AppContextImage
 	if len(ctxImage) == 0 {
 		sh := appcorev1.CliAppShellBash
-		distrio := appcorev1.CliAppDisrioAlpine
+		distrio := appcorev1.CliAppDistrioAlpine
 		if len(app.Spec.Shell) > 0 {
 			sh = app.Spec.Shell
 		}
