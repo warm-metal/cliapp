@@ -127,13 +127,13 @@ func (r *CliAppReconciler) applyAppConfig(pod *corev1.Pod, targetContainerID int
 	ctxImage := r.AppContextImage
 	if len(ctxImage) == 0 {
 		sh := appcorev1.CliAppShellBash
-		distrio := appcorev1.CliAppDistrioAlpine
+		distrio := appcorev1.CliAppDistroAlpine
 		if len(app.Spec.Shell) > 0 {
 			sh = app.Spec.Shell
 		}
 
-		if len(app.Spec.Distrio) > 0 {
-			distrio = app.Spec.Distrio
+		if len(app.Spec.Distro) > 0 {
+			distrio = app.Spec.Distro
 		}
 
 		ctxImage = fmt.Sprintf(appContextImage, strings.ToLower(string(sh)), strings.ToLower(string(distrio)))

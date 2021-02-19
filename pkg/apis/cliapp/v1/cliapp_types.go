@@ -60,12 +60,12 @@ type CliAppSpec struct {
 	// +optional
 	Env []string `json:"env,omitempty"`
 
-	// Distrio the app dependents. The default is alpine.
+	// Distro the app dependents. The default is alpine.
 	// +optional
 	// Valid values are:
 	// - "Alpine" (default): The app works on Alpine;
 	// - "Ubuntu: The app works on Ubuntu.
-	Distrio CliAppDistrio `json:"distrio,omitempty"`
+	Distro CliAppDistro `json:"distro,omitempty"`
 
 	// The shell interpreter you preferred. Can be either bash or zsh.
 	// +optional
@@ -85,13 +85,13 @@ type CliAppSpec struct {
 	UninstallUnlessLive bool `json:"uninstall,omitempty"`
 }
 
-// CliAppDistrio describes Linux Distrio the app depends.
+// CliAppDistro describes Linux Distro the app depends.
 // +kubebuilder:validation:Enum=Alpine;Ubuntu
-type CliAppDistrio string
+type CliAppDistro string
 
 const (
-	CliAppDistrioAlpine CliAppDistrio = "alpine"
-	CliAppDistrioUbuntu CliAppDistrio = "ubuntu"
+	CliAppDistroAlpine CliAppDistro = "alpine"
+	CliAppDistroUbuntu CliAppDistro = "ubuntu"
 )
 
 type CliAppShell string

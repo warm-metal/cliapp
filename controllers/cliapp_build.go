@@ -63,33 +63,8 @@ func (b *imageBuilderContext) fallback() {
 
 func (b *imageBuilderContext) start() {
 	defer b.cancel()
-	dockerfile := fmt.Sprintf("%s.dockerfile")
-	dockerfileUrl, err := url.Parse(b.Dockerfile)
-	if err != nil {
-		err = ioutil.WriteFile(dockerfile, []byte(b.Dockerfile), 0644)
-		if err != nil {
-			b.finish(err)
-			return
-		}
-	}
-
-	// FIXME use http context instead
-	if dockerfileUrl.Scheme != "http" && dockerfileUrl.Scheme != "https" {
-		err = downloadFile(dockerfile, b.Dockerfile)
-		if err != nil {
-			b.finish(err)
-			return
-		}
-	}
-
 	solveOpt := buildkit.SolveOpt{
-		LocalDirs: map[string]string{
-			"context":    ".",
-			"dockerfile": ".",
-		},
-		FrontendAttrs: map[string]string{
-			"filename": dockerfile,
-		},
+		FrontendAttrs: map[string]string{},
 		Exports: []buildkit.ExportEntry{
 			{
 				Type: "image",
@@ -98,6 +73,25 @@ func (b *imageBuilderContext) start() {
 				},
 			},
 		},
+	}
+
+	dockerfileUrl, err := url.Parse(b.Dockerfile)
+	if err != nil {
+		dockerfile := fmt.Sprintf("%s.dockerfile", b.Name)
+		if err = ioutil.WriteFile(dockerfile, []byte(b.Dockerfile), 0644); err != nil {
+			b.finish(err)
+			return
+		}
+
+		solveOpt.FrontendAttrs["filename"] = dockerfile
+		solveOpt.LocalDirs = map[string]string{
+			"context":    ".",
+			"dockerfile": ".",
+		}
+	}
+
+	if dockerfileUrl.Scheme != "http" && dockerfileUrl.Scheme != "https" {
+		solveOpt.FrontendAttrs["context"] = b.Dockerfile
 	}
 
 	if _, err = b.client.Solve(b.ctx, nil, solveOpt, nil); err != nil {

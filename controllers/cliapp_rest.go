@@ -89,6 +89,4 @@ func (r *CliAppReconciler) makeAppRest(ctx context.Context, log logr.Logger, app
 	default:
 		panic(app.Status.Phase)
 	}
-
-	return
 }
