@@ -47,8 +47,8 @@ spec:
                 description: Set the target container name if the ForObject has more
                   than one containers.
                 type: string
-              distrio:
-                description: 'Distrio the app dependents. The default is alpine. Valid
+              distro:
+                description: 'Distro the app dependents. The default is alpine. Valid
                   values are: - "Alpine" (default): The app works on Alpine; - "Ubuntu:
                   The app works on Ubuntu.'
                 enum:

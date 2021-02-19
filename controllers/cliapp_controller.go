@@ -89,13 +89,23 @@ func (r *CliAppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res
 
 	switch app.Spec.TargetPhase {
 	case appcorev1.CliAppPhaseRest:
-		return r.makeAppRest(ctx, log, app)
+		result, err = r.makeAppRest(ctx, log, app)
 	case appcorev1.CliAppPhaseLive:
-		return r.makeAppLive(ctx, log, app)
+		result, err = r.makeAppLive(ctx, log, app)
 	default:
 		err = xerrors.Errorf("TargetPhase can only be either Rest or Live")
-		return
 	}
+
+	if err != nil {
+		app.Status.Error = err.Error()
+		if err := r.Status().Update(ctx, app); err != nil {
+			log.Error(err, "unable to update app")
+		}
+
+		result.Requeue = true
+	}
+
+	return
 }
 
 // SetupWithManager sets up the controller with the Manager.
