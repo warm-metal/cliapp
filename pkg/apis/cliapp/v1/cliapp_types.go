@@ -90,15 +90,15 @@ type CliAppSpec struct {
 type CliAppDistrio string
 
 const (
-	CliAppDistrioAlpine CliAppDistrio = "Alpine"
-	CliAppDistrioUbuntu CliAppDistrio = "Ubuntu"
+	CliAppDistrioAlpine CliAppDistrio = "alpine"
+	CliAppDistrioUbuntu CliAppDistrio = "ubuntu"
 )
 
 type CliAppShell string
 
 const (
-	CliAppShellBash CliAppShell = "Bash"
-	CliAppShellZsh  CliAppShell = "Zsh"
+	CliAppShellBash CliAppShell = "bash"
+	CliAppShellZsh  CliAppShell = "zsh"
 )
 
 // CliAppStatus defines the observed state of CliApp

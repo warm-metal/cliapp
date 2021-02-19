@@ -53,27 +53,10 @@ const (
 )
 
 func (r *CliAppReconciler) convertToManifest(app *appcorev1.CliApp) (*corev1.Pod, error) {
-	ctxImage := r.AppContextImage
-	if len(ctxImage) == 0 {
-		sh := appcorev1.CliAppShellBash
-		distrio := appcorev1.CliAppDistrioAlpine
-		if len(app.Spec.Shell) > 0 {
-			sh = app.Spec.Shell
-		}
-
-		if len(app.Spec.Distrio) > 0 {
-			distrio = app.Spec.Distrio
-		}
-
-		ctxImage = fmt.Sprintf(appContextImage, strings.ToLower(string(sh)), strings.ToLower(string(distrio)))
-	}
-
 	return &corev1.Pod{
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{
-				{
-					Image: ctxImage,
-				},
+				{},
 			},
 		},
 	}, nil
@@ -141,6 +124,21 @@ func (r *CliAppReconciler) applyAppConfig(pod *corev1.Pod, targetContainerID int
 		envs = append(envs, env)
 	}
 
+	ctxImage := r.AppContextImage
+	if len(ctxImage) == 0 {
+		sh := appcorev1.CliAppShellBash
+		distrio := appcorev1.CliAppDistrioAlpine
+		if len(app.Spec.Shell) > 0 {
+			sh = app.Spec.Shell
+		}
+
+		if len(app.Spec.Distrio) > 0 {
+			distrio = app.Spec.Distrio
+		}
+
+		ctxImage = fmt.Sprintf(appContextImage, strings.ToLower(string(sh)), strings.ToLower(string(distrio)))
+	}
+
 	pod.ObjectMeta.Name = fmt.Sprintf("%s-%s", app.Name, rand.String(5))
 	pod.ObjectMeta.Namespace = app.Namespace
 	if pod.ObjectMeta.Labels == nil {
@@ -184,6 +182,10 @@ func (r *CliAppReconciler) applyAppConfig(pod *corev1.Pod, targetContainerID int
 			targetContainer.SecurityContext.Capabilities.Add = append(targetContainer.SecurityContext.Capabilities.Add,
 				"SYS_ADMIN")
 		}
+	}
+
+	if len(ctxImage) > 0 {
+		targetContainer.Image = ctxImage
 	}
 
 	pod.Spec.Containers = append(pod.Spec.Containers, corev1.Container{

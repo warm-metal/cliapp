@@ -76,5 +76,17 @@ func validateApp(app *appcorev1.CliApp) error {
 		return xerrors.Errorf("TargetPhase is not set")
 	}
 
+	if len(app.Spec.Distrio) > 0 {
+		if app.Spec.Distrio != appcorev1.CliAppDistrioAlpine && app.Spec.Distrio != appcorev1.CliAppDistrioUbuntu {
+			return xerrors.Errorf("Spec.Distrio must be either alpine or ubuntu")
+		}
+	}
+
+	if len(app.Spec.Shell) > 0 {
+		if app.Spec.Shell != appcorev1.CliAppShellZsh && app.Spec.Shell != appcorev1.CliAppShellBash {
+			return xerrors.Errorf("Spec.Shell must be either bash or zsh")
+		}
+	}
+
 	return nil
 }

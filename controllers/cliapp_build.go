@@ -73,6 +73,7 @@ func (b *imageBuilderContext) start() {
 		}
 	}
 
+	// FIXME use http context instead
 	if dockerfileUrl.Scheme != "http" && dockerfileUrl.Scheme != "https" {
 		err = downloadFile(dockerfile, b.Dockerfile)
 		if err != nil {
