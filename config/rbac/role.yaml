@@ -13,11 +13,28 @@ rules:
   verbs:
   - create
   - delete
+  - deletecollection
   - get
   - list
   - patch
   - update
   - watch
+- apiGroups:
+  - apps
+  resources:
+  - daemonset
+  - deployments
+  - replicaset
+  - statefulsets
+  verbs:
+  - get
+- apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  - jobs
+  verbs:
+  - get
 - apiGroups:
   - core.cliapp.warm-metal.tech
   resources:
@@ -44,3 +61,11 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - extensions
+  resources:
+  - daemonset
+  - deployments
+  - replicaset
+  verbs:
+  - get

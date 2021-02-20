@@ -62,7 +62,7 @@ func (r *CliAppReconciler) makeAppRest(ctx context.Context, log logr.Logger, app
 			return
 		}
 
-		result.Requeue = true
+		result.RequeueAfter = DefaultRequeueDuration
 		terminating, ready, starting, terminatingDesc, readyDesc, startingDesc := groupPods(&podList)
 		log.Info("Pods of app", "terminating", terminatingDesc, "ready", readyDesc, "starting", startingDesc)
 

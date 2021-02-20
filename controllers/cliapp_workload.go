@@ -23,10 +23,11 @@ func (r *CliAppReconciler) startApp(ctx context.Context, app *appcorev1.CliApp, 
 		manifest, targetContainerID, err = r.fetchForkTargetPod(app.Namespace, app.Spec.ForkObject, app.Spec.ForkContainer)
 	} else {
 		manifest, err = r.convertToManifest(app)
-		if err != nil {
-			log.Error(err, "unable to generate manifest", "spec", app.Spec)
-			return err
-		}
+	}
+
+	if err != nil {
+		log.Error(err, "unable to generate manifest", "spec", app.Spec)
+		return err
 	}
 
 	err = r.applyAppConfig(manifest, targetContainerID, app)
@@ -56,7 +57,9 @@ func (r *CliAppReconciler) convertToManifest(app *appcorev1.CliApp) (*corev1.Pod
 	return &corev1.Pod{
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{
-				{},
+				{
+					Image: app.Spec.Image,
+				},
 			},
 		},
 	}, nil
@@ -124,10 +127,10 @@ func (r *CliAppReconciler) applyAppConfig(pod *corev1.Pod, targetContainerID int
 		envs = append(envs, env)
 	}
 
+	sh := appcorev1.CliAppShellBash
+	distro := appcorev1.CliAppDistroAlpine
 	ctxImage := r.AppContextImage
 	if len(ctxImage) == 0 {
-		sh := appcorev1.CliAppShellBash
-		distro := appcorev1.CliAppDistroAlpine
 		if len(app.Spec.Shell) > 0 {
 			sh = app.Spec.Shell
 		}
@@ -154,12 +157,29 @@ func (r *CliAppReconciler) applyAppConfig(pod *corev1.Pod, targetContainerID int
 		VolumeMounts: []corev1.VolumeMount{sharedCtx},
 	})
 
-	targetContainer := pod.Spec.Containers[targetContainerID]
+	targetContainer := &pod.Spec.Containers[targetContainerID]
+
+	// exchange the target image
+	targetImage := targetContainer.Image
+	targetContainer.Image = ctxImage
+
+	// update the target container name
 	targetContainer.Name = appContainer
+
+	// append envs
 	targetContainer.Env = append(targetContainer.Env, corev1.EnvVar{
 		Name:  "APP_ROOT",
 		Value: appRoot,
+	}, corev1.EnvVar{
+		Name:  "DISTRO",
+		Value: string(distro),
+	}, corev1.EnvVar{
+		Name:  "SHELL",
+		Value: string(sh),
 	})
+
+	targetContainer.Env = append(targetContainer.Env, envs...)
+
 	targetContainer.Stdin = true
 	targetContainer.VolumeMounts = append(targetContainer.VolumeMounts, hostMounts...)
 	targetContainer.VolumeMounts = append(targetContainer.VolumeMounts, sharedCtx,
@@ -184,10 +204,6 @@ func (r *CliAppReconciler) applyAppConfig(pod *corev1.Pod, targetContainerID int
 		}
 	}
 
-	if len(ctxImage) > 0 {
-		targetContainer.Image = ctxImage
-	}
-
 	pod.Spec.Containers = append(pod.Spec.Containers, corev1.Container{
 		Name:  shellContextSidecar,
 		Image: shellContextSyncImage,
@@ -206,7 +222,7 @@ func (r *CliAppReconciler) applyAppConfig(pod *corev1.Pod, targetContainerID int
 				CSI: &corev1.CSIVolumeSource{
 					Driver: csiDriverName,
 					VolumeAttributes: map[string]string{
-						"image": app.Spec.Image,
+						"image": targetImage,
 					},
 				},
 			},

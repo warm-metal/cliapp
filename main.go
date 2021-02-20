@@ -24,6 +24,7 @@ import (
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/restmapper"
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"time"
@@ -129,10 +130,11 @@ func main() {
 }
 
 func clientGetter(mgr manager.Manager) resource.RESTClientGetter {
+	discoveryCli := memory.NewMemCacheClient(discovery.NewDiscoveryClientForConfigOrDie(mgr.GetConfig()))
 	return &mgrClientGetter{
 		config:    mgr.GetConfig(),
-		mapper:    mgr.GetRESTMapper(),
-		discovery: memory.NewMemCacheClient(discovery.NewDiscoveryClientForConfigOrDie(mgr.GetConfig())),
+		mapper:    restmapper.NewShortcutExpander(mgr.GetRESTMapper(), discoveryCli),
+		discovery: discoveryCli,
 	}
 }
 

@@ -24,13 +24,13 @@ func (r *CliAppReconciler) fetchForkTargetPod(
 		Flatten().
 		Do()
 	if result.Err() != nil {
-		err = xerrors.Errorf(`can't fetch "%#v": %s`, kindAndName, result.Err())
+		err = xerrors.Errorf(`unable to fetch "%s": %s`, kindAndName, result.Err())
 		return
 	}
 
 	infos, err := result.Infos()
 	if err != nil {
-		err = xerrors.Errorf(`can't fetch result of "%#v": %s`, kindAndName, result.Err())
+		err = xerrors.Errorf(`unable to fetch result of "%s": %s`, kindAndName, result.Err())
 		return
 	}
 
@@ -185,6 +185,13 @@ func (r *CliAppReconciler) fetchForkTargetPod(
 	default:
 		err = xerrors.Errorf("object %s/%s is not supported", info.Mapping.GroupVersionKind, info.Name)
 		return
+	}
+
+	for i := range podTmpl.Containers {
+		container := &podTmpl.Containers[i]
+		container.StartupProbe = nil
+		container.LivenessProbe = nil
+		container.ReadinessProbe = nil
 	}
 
 	pod = &corev1.Pod{

@@ -4,14 +4,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/go-logr/logr"
 	buildkit "github.com/moby/buildkit/client"
 	appcorev1 "github.com/warm-metal/cliapp/pkg/apis/cliapp/v1"
 	"golang.org/x/xerrors"
-	"io"
 	"io/ioutil"
-	"net/http"
 	"net/url"
-	"os"
 	"time"
 )
 
@@ -41,6 +39,7 @@ func InitImageBuilderOrDie(endpoint string) ImageBuilder {
 }
 
 type imageBuilderContext struct {
+	log        logr.Logger
 	ctx        context.Context
 	cancel     context.CancelFunc
 	client     *buildkit.Client
@@ -64,6 +63,7 @@ func (b *imageBuilderContext) fallback() {
 func (b *imageBuilderContext) start() {
 	defer b.cancel()
 	solveOpt := buildkit.SolveOpt{
+		Frontend:      "dockerfile.v0",
 		FrontendAttrs: map[string]string{},
 		Exports: []buildkit.ExportEntry{
 			{
@@ -88,12 +88,14 @@ func (b *imageBuilderContext) start() {
 			"context":    ".",
 			"dockerfile": ".",
 		}
-	}
-
-	if dockerfileUrl.Scheme != "http" && dockerfileUrl.Scheme != "https" {
+	} else if dockerfileUrl.Scheme == "http" || dockerfileUrl.Scheme == "https" {
 		solveOpt.FrontendAttrs["context"] = b.Dockerfile
+	} else {
+		b.finish(xerrors.Errorf("invalid dockerfile"))
+		return
 	}
 
+	b.log.Info("build image", "opts", solveOpt)
 	if _, err = b.client.Solve(b.ctx, nil, solveOpt, nil); err != nil {
 		b.finish(xerrors.Errorf("%s", err))
 		return
@@ -102,34 +104,17 @@ func (b *imageBuilderContext) start() {
 	b.finish(nil)
 }
 
-func downloadFile(filepath string, url string) error {
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-
-	defer resp.Body.Close()
-
-	out, err := os.OpenFile(filepath, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0644)
-	if err != nil {
-		return err
-	}
-
-	defer out.Close()
-
-	_, err = io.Copy(out, resp.Body)
-	return err
-}
-
 var underBuild = xerrors.Errorf("image is under build")
 
-func (b *ImageBuilder) testImage(app *appcorev1.CliApp) (image string, err error) {
+func (b *ImageBuilder) testImage(log logr.Logger, app *appcorev1.CliApp) (image string, err error) {
 	if ctx, found := b.appMap[app.Name]; found && ctx.Done {
 		return ctx.Image, ctx.Error
 	}
 
 	remoteCtx, cancel := context.WithCancel(context.TODO())
 	ctx := &imageBuilderContext{
+		log:        log,
+		client:     b.client,
 		ctx:        remoteCtx,
 		cancel:     cancel,
 		Name:       app.Name,

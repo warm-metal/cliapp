@@ -48,7 +48,10 @@ type CliAppReconciler struct {
 	AppContextImage string
 }
 
-//+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;create;update;patch;delete;deletecollection
+//+kubebuilder:rbac:groups="extensions",resources=deployments;daemonset;replicaset,verbs=get
+//+kubebuilder:rbac:groups="apps",resources=replicaset;daemonset;statefulsets;deployments,verbs=get
+//+kubebuilder:rbac:groups="batch",resources=cronjobs;jobs;,verbs=get
 //+kubebuilder:rbac:groups=core.cliapp.warm-metal.tech,resources=cliapps,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core.cliapp.warm-metal.tech,resources=cliapps/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=core.cliapp.warm-metal.tech,resources=cliapps/finalizers,verbs=update
@@ -101,8 +104,6 @@ func (r *CliAppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res
 		if err := r.Status().Update(ctx, app); err != nil {
 			log.Error(err, "unable to update app")
 		}
-
-		result.Requeue = true
 	}
 
 	return

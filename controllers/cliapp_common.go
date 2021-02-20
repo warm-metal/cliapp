@@ -9,6 +9,11 @@ import (
 	"golang.org/x/xerrors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"time"
+)
+
+var (
+	DefaultRequeueDuration = 5 * time.Second
 )
 
 func groupPods(podList *corev1.PodList) (
@@ -46,7 +51,7 @@ func (r *CliAppReconciler) transitPhaseTo(
 		if len(app.Status.PodName) == 0 {
 			panic("set Pod name along with phase Live")
 		}
-		if len(app.Spec.Image) == 0 {
+		if len(app.Spec.Image) == 0 && len(app.Spec.ForkObject) == 0 {
 			panic("set Image along with phase Live")
 		}
 	}
@@ -64,12 +69,8 @@ func (r *CliAppReconciler) transitPhaseTo(
 }
 
 func validateApp(app *appcorev1.CliApp) error {
-	if len(app.Spec.Image) == 0 && len(app.Spec.Dockerfile) == 0 {
-		return xerrors.Errorf("specify either image or dockerfile for the app")
-	}
-
-	if len(app.Spec.Command) == 0 {
-		return xerrors.Errorf("specify command will be executed")
+	if len(app.Spec.Image) == 0 && len(app.Spec.Dockerfile) == 0 && len(app.Spec.ForkObject) == 0 {
+		return xerrors.Errorf("specify either image, dockerfile, or ForkObject for the app")
 	}
 
 	if app.Spec.TargetPhase == "" {

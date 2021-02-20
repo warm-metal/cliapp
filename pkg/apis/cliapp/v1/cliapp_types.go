@@ -49,6 +49,8 @@ type CliAppSpec struct {
 
 	// Set the command to be executed when client runs the app.
 	// It is usually an executable binary. It should be found in the PATH, or an absolute path to the binary.
+	// If no set, session-gate will run commands in the app context rootfs instead of the rootfs of Spec.Image.
+	// +optional
 	Command []string `json:"command,omitempty"`
 
 	// Host paths would be mounted to the app.
@@ -63,15 +65,15 @@ type CliAppSpec struct {
 	// Distro the app dependents. The default is alpine.
 	// +optional
 	// Valid values are:
-	// - "Alpine" (default): The app works on Alpine;
-	// - "Ubuntu: The app works on Ubuntu.
+	// - "alpine" (default): The app works on Alpine;
+	// - "ubuntu: The app works on Ubuntu.
 	Distro CliAppDistro `json:"distro,omitempty"`
 
 	// The shell interpreter you preferred. Can be either bash or zsh.
 	// +optional
 	// Valid values are:
-	// - "Bash" (default): The app will run in Bash;
-	// - "Zsh: The app will run in Zsh.
+	// - "bash" (default): The app will run in Bash;
+	// - "zsh: The app will run in Zsh.
 	Shell CliAppShell `json:"shell,omitempty"`
 
 	// The target phase the app should achieve.
@@ -86,7 +88,7 @@ type CliAppSpec struct {
 }
 
 // CliAppDistro describes Linux Distro the app depends.
-// +kubebuilder:validation:Enum=Alpine;Ubuntu
+// +kubebuilder:validation:Enum=alpine;ubuntu
 type CliAppDistro string
 
 const (
@@ -94,6 +96,8 @@ const (
 	CliAppDistroUbuntu CliAppDistro = "ubuntu"
 )
 
+// CliAppShell describes the shell interpreter the app prefers to use.
+// +kubebuilder:validation:Enum=bash;zsh
 type CliAppShell string
 
 const (

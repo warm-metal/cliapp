@@ -39,7 +39,9 @@ spec:
               command:
                 description: Set the command to be executed when client runs the app.
                   It is usually an executable binary. It should be found in the PATH,
-                  or an absolute path to the binary.
+                  or an absolute path to the binary. If no set, session-gate will
+                  run commands in the app context rootfs instead of the rootfs of
+                  Spec.Image.
                 items:
                   type: string
                 type: array
@@ -49,11 +51,11 @@ spec:
                 type: string
               distro:
                 description: 'Distro the app dependents. The default is alpine. Valid
-                  values are: - "Alpine" (default): The app works on Alpine; - "Ubuntu:
+                  values are: - "alpine" (default): The app works on Alpine; - "ubuntu:
                   The app works on Ubuntu.'
                 enum:
-                - Alpine
-                - Ubuntu
+                - alpine
+                - ubuntu
                 type: string
               dockerfile:
                 description: Specify a Dockerfile to build a image used to run the
@@ -83,8 +85,11 @@ spec:
                 type: string
               shell:
                 description: 'The shell interpreter you preferred. Can be either bash
-                  or zsh. Valid values are: - "Bash" (default): The app will run in
-                  Bash; - "Zsh: The app will run in Zsh.'
+                  or zsh. Valid values are: - "bash" (default): The app will run in
+                  Bash; - "zsh: The app will run in Zsh.'
+                enum:
+                - bash
+                - zsh
                 type: string
               targetPhase:
                 description: 'The target phase the app should achieve. Valid values
