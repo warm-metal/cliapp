@@ -28,6 +28,8 @@ spec:
     matchLabels:
       app: builder
       owner: warm-metal.tech
+  strategy:
+    type: Recreate
   template:
     metadata:
       labels:
