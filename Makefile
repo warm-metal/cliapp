@@ -45,6 +45,18 @@ deploy: manifests kustomize
 undeploy:
 	$(KUSTOMIZE) build config/default | kubectl delete -f -
 
+minikube: manifests kustomize
+	$(KUSTOMIZE) build config/minikube | kubectl apply -f -
+
+unminikube:
+	$(KUSTOMIZE) build config/minikube | kubectl delete -f -
+
+containerd: manifests kustomize
+	$(KUSTOMIZE) build config/containerd | kubectl apply -f -
+
+uncontainerd:
+	$(KUSTOMIZE) build config/containerd | kubectl delete -f -
+
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases

@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: buildkitd
+  namespace: system
+spec:
+  template:
+    spec:
+      containers:
+      - name: buildkitd
+        volumeMounts:
+          - mountPath: /var/lib/containerd
+            name: containerd-root
+          - mountPath: /var/lib/buildkit
+            mountPropagation: Bidirectional
+            name: buildkit-root
+      volumes:
+        - hostPath:
+            path: /var/lib/containerd
+            type: Directory
+          name: containerd-root
+        - hostPath:
+            path: /var/lib/buildkit
+            type: DirectoryOrCreate
+          name: buildkit-root

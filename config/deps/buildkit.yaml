@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: buildkitd
+  namespace: system
+spec:
+  ports:
+    - name: buildkitd
+      port: 2375
+      protocol: TCP
+      targetPort: 2375
+  selector:
+    app: builder
+    owner: warm-metal.tech
+  type: LoadBalancer
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: builder
+    owner: warm-metal.tech
+  name: buildkitd
+  namespace: system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: builder
+      owner: warm-metal.tech
+  template:
+    metadata:
+      labels:
+        app: builder
+        owner: warm-metal.tech
+    spec:
+      containers:
+        - image: docker.io/warmmetal/buildkit:0.8.1-1
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            exec:
+              command:
+                - buildctl
+                - debug
+                - workers
+            failureThreshold: 3
+            initialDelaySeconds: 5
+            periodSeconds: 30
+            successThreshold: 1
+            timeoutSeconds: 1
+          name: buildkitd
+          ports:
+            - containerPort: 2375
+              name: service
+              protocol: TCP
+          readinessProbe:
+            exec:
+              command:
+                - buildctl
+                - debug
+                - workers
+            failureThreshold: 3
+            initialDelaySeconds: 5
+            periodSeconds: 30
+            successThreshold: 1
+            timeoutSeconds: 1
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - mountPath: /etc/buildkit/buildkitd.toml
+              name: buildkitd-conf
+              subPath: buildkitd.toml
+            - mountPath: /run/containerd
+              mountPropagation: Bidirectional
+              name: containerd-runtime
+      volumes:
+        - configMap:
+            defaultMode: 420
+            items:
+              - key: buildkitd.toml
+                path: buildkitd.toml
+            name: buildkitd.toml
+          name: buildkitd-conf
+        - hostPath:
+            path: /run/containerd
+            type: Directory
+          name: containerd-runtime

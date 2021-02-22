@@ -1,0 +1,24 @@
+debug = true
+# root is where all buildkit state is stored.
+root = "/var/lib/buildkit"
+snapshot-root = "/var/lib/buildkit/local-snapshot"
+# insecure-entitlements allows insecure entitlements, disabled by default.
+insecure-entitlements = [ "network.host", "security.insecure" ]
+
+[grpc]
+  address = [ "unix:///run/buildkit/buildkitd.sock", "tcp://0.0.0.0:2375" ]
+  uid = 0
+  gid = 0
+
+[worker.oci]
+  enabled = false
+
+[worker.containerd]
+  address = "/run/containerd/containerd.sock"
+  enabled = true
+  platforms = [ "linux/amd64", "linux/arm64" ]
+  namespace = "k8s.io"
+  gc = true
+  [[worker.containerd.gcpolicy]]
+    keepBytes = 10240000000
+    keepDuration = 3600

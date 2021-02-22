@@ -1,5 +1,11 @@
 resources:
+- buildkit.yaml
 - csi-image.yaml
 - shell_context_cm.yaml
 - shell_context_rbac.yaml
 - session-gate.yaml
+
+configMapGenerator:
+- name: buildkitd.toml
+  files:
+    - buildkitd.toml
