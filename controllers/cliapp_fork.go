@@ -66,7 +66,7 @@ func (r *CliAppReconciler) fetchForkTargetPod(
 				Deployments(info.Namespace).
 				Get(ctx, info.Name, opt)
 			if failed != nil {
-				err = xerrors.Errorf("can't fetch %s/%s: %s", info.Mapping.GroupVersionKind, info.Name, failed)
+				err = xerrors.Errorf("unable to fetch %s/%s: %s", info.Mapping.GroupVersionKind, info.Name, failed)
 				return
 			}
 
@@ -75,7 +75,7 @@ func (r *CliAppReconciler) fetchForkTargetPod(
 		case appsv1.GroupName:
 			deploy, failed := clientset.AppsV1().Deployments(info.Namespace).Get(ctx, info.Name, opt)
 			if failed != nil {
-				err = xerrors.Errorf("can't fetch %s/%s: %s", info.Mapping.GroupVersionKind, info.Name, failed)
+				err = xerrors.Errorf("unable to fetch %s/%s: %s", info.Mapping.GroupVersionKind, info.Name, failed)
 				return
 			}
 
@@ -91,7 +91,7 @@ func (r *CliAppReconciler) fetchForkTargetPod(
 
 		sfs, failed := clientset.AppsV1().StatefulSets(info.Namespace).Get(ctx, info.Name, opt)
 		if failed != nil {
-			err = xerrors.Errorf("can't fetch %s/%s: %s", info.Mapping.GroupVersionKind, info.Name, failed)
+			err = xerrors.Errorf("unable to fetch %s/%s: %s", info.Mapping.GroupVersionKind, info.Name, failed)
 			return
 		}
 
@@ -104,7 +104,7 @@ func (r *CliAppReconciler) fetchForkTargetPod(
 
 		job, failed := clientset.BatchV1().Jobs(info.Namespace).Get(ctx, info.Name, opt)
 		if failed != nil {
-			err = xerrors.Errorf("can't fetch %s/%s: %s", info.Mapping.GroupVersionKind, info.Name, failed)
+			err = xerrors.Errorf("unable to fetch %s/%s: %s", info.Mapping.GroupVersionKind, info.Name, failed)
 			return
 		}
 
@@ -117,7 +117,7 @@ func (r *CliAppReconciler) fetchForkTargetPod(
 
 		job, failed := clientset.BatchV1beta1().CronJobs(info.Namespace).Get(ctx, info.Name, opt)
 		if failed != nil {
-			err = xerrors.Errorf("can't fetch %s/%s: %s", info.Mapping.GroupVersionKind, info.Name, err)
+			err = xerrors.Errorf("unable to fetch %s/%s: %s", info.Mapping.GroupVersionKind, info.Name, err)
 			return
 		}
 
@@ -128,7 +128,7 @@ func (r *CliAppReconciler) fetchForkTargetPod(
 		case extensionsv1beta1.GroupName:
 			ds, failed := clientset.ExtensionsV1beta1().DaemonSets(info.Namespace).Get(ctx, info.Name, opt)
 			if failed != nil {
-				err = xerrors.Errorf("can't fetch %s/%s: %s", info.Mapping.GroupVersionKind, info.Name, failed)
+				err = xerrors.Errorf("unable to fetch %s/%s: %s", info.Mapping.GroupVersionKind, info.Name, failed)
 				return
 			}
 
@@ -137,7 +137,7 @@ func (r *CliAppReconciler) fetchForkTargetPod(
 		case appsv1.GroupName:
 			ds, failed := clientset.AppsV1().DaemonSets(info.Namespace).Get(ctx, info.Name, opt)
 			if failed != nil {
-				err = xerrors.Errorf("can't fetch %s/%s: %s", info.Mapping.GroupVersionKind, info.Name, failed)
+				err = xerrors.Errorf("unable to fetch %s/%s: %s", info.Mapping.GroupVersionKind, info.Name, failed)
 				return
 			}
 
@@ -151,7 +151,7 @@ func (r *CliAppReconciler) fetchForkTargetPod(
 		case extensionsv1beta1.GroupName:
 			rs, failed := clientset.ExtensionsV1beta1().ReplicaSets(info.Namespace).Get(ctx, info.Name, opt)
 			if failed != nil {
-				err = xerrors.Errorf("can't fetch %s/%s: %s", info.Mapping.GroupVersionKind, info.Name, failed)
+				err = xerrors.Errorf("unable to fetch %s/%s: %s", info.Mapping.GroupVersionKind, info.Name, failed)
 				return
 			}
 
@@ -160,7 +160,7 @@ func (r *CliAppReconciler) fetchForkTargetPod(
 		case appsv1.GroupName:
 			rs, failed := clientset.AppsV1().ReplicaSets(info.Namespace).Get(ctx, info.Name, opt)
 			if failed != nil {
-				err = xerrors.Errorf("can't fetch %s/%s: %s", info.Mapping.GroupVersionKind, info.Name, failed)
+				err = xerrors.Errorf("unable to fetch %s/%s: %s", info.Mapping.GroupVersionKind, info.Name, failed)
 				return
 			}
 
@@ -176,7 +176,7 @@ func (r *CliAppReconciler) fetchForkTargetPod(
 
 		po, failed := clientset.CoreV1().Pods(info.Namespace).Get(ctx, info.Name, opt)
 		if failed != nil {
-			err = xerrors.Errorf("can't fetch %s/%s: %s", info.Mapping.GroupVersionKind, info.Name, failed)
+			err = xerrors.Errorf("unable to fetch %s/%s: %s", info.Mapping.GroupVersionKind, info.Name, failed)
 			return
 		}
 
@@ -215,7 +215,12 @@ func (r *CliAppReconciler) fetchForkTargetPod(
 			return
 		}
 	} else if len(pod.Spec.Containers) > 0 {
-		err = xerrors.Errorf("%s has more than 1 container. Specify a container name", kindAndName)
+		containers := make([]string, len(pod.Spec.Containers))
+		for i := range pod.Spec.Containers {
+			containers[i] = pod.Spec.Containers[i].Name
+		}
+
+		err = xerrors.Errorf("%s has more than 1 container. Specify one of %v", kindAndName, containers)
 		return
 	}
 

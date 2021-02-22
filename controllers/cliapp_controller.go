@@ -82,6 +82,16 @@ func (r *CliAppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res
 		return
 	}
 
+	app.Status.Error = ""
+	defer func() {
+		if err != nil {
+			app.Status.Error = err.Error()
+			if err := r.Status().Update(ctx, app); err != nil {
+				log.Error(err, "unable to update app")
+			}
+		}
+	}()
+
 	if err = validateApp(app); err != nil {
 		return
 	}
@@ -97,13 +107,6 @@ func (r *CliAppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res
 		result, err = r.makeAppLive(ctx, log, app)
 	default:
 		err = xerrors.Errorf("TargetPhase can only be either Rest or Live")
-	}
-
-	if err != nil {
-		app.Status.Error = err.Error()
-		if err := r.Status().Update(ctx, app); err != nil {
-			log.Error(err, "unable to update app")
-		}
 	}
 
 	return

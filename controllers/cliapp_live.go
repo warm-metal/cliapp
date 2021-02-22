@@ -102,7 +102,7 @@ func (r *CliAppReconciler) makeAppLive(
 			image, err := r.testImage(log, app)
 			if err != nil {
 				result.RequeueAfter = DefaultRequeueDuration
-				return result, err
+				return result, nil
 			}
 
 			err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
