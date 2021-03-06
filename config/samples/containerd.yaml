@@ -625,8 +625,10 @@ spec:
         owner: warm-metal.tech
     spec:
       containers:
-      - image: docker.io/warmmetal/buildkit:0.8.1-1
-        imagePullPolicy: IfNotPresent
+      - env:
+        - name: BUILDKIT_STEP_LOG_MAX_SIZE
+          value: "-1"
+        image: docker.io/warmmetal/buildkit:0.8.1-1
         livenessProbe:
           exec:
             command:

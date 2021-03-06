@@ -54,6 +54,10 @@ unminikube:
 containerd: manifests kustomize
 	$(KUSTOMIZE) build config/containerd | kubectl apply -f -
 
+dump-manifest: manifests kustomize
+	$(KUSTOMIZE) build config/minikube > config/samples/minikube.yaml
+	$(KUSTOMIZE) build config/containerd > config/samples/containerd.yaml
+
 uncontainerd:
 	$(KUSTOMIZE) build config/containerd | kubectl delete -f -
 
