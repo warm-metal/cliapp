@@ -55,6 +55,7 @@ func (r *CliAppReconciler) makeAppRest(ctx context.Context, log logr.Logger, app
 		}
 
 		if len(podList.Items) == 0 {
+			// FIXME delete the app if app.Spec.UninstallUnlessLive
 			if err = r.transitPhaseTo(ctx, log, app, appcorev1.CliAppPhaseRest); err != nil {
 				return
 			}

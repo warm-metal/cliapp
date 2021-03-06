@@ -129,13 +129,13 @@ status:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: cliapp-csi-image-warm-metal
+  name: cliapp-session-gate
   namespace: cliapp-system
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: cliapp-session-gate
+  name: csi-image-warm-metal
   namespace: cliapp-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -165,18 +165,6 @@ rules:
   verbs:
   - create
   - patch
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: cliapp-csi-image-warm-metal
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - secrets
-  verbs:
-  - get
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -334,6 +322,18 @@ rules:
   - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: csi-image-warm-metal
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: cliapp-leader-election-rolebinding
@@ -345,19 +345,6 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: default
-  namespace: cliapp-system
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: cliapp-csi-image-warm-metal
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: cliapp-csi-image-warm-metal
-subjects:
-- kind: ServiceAccount
-  name: cliapp-csi-image-warm-metal
   namespace: cliapp-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -412,6 +399,19 @@ subjects:
   kind: Group
   name: system:serviceaccounts
 ---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: csi-image-warm-metal
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: csi-image-warm-metal
+subjects:
+- kind: ServiceAccount
+  name: csi-image-warm-metal
+  namespace: cliapp-system
+---
 apiVersion: v1
 data:
   buildkitd.toml: |-
@@ -441,7 +441,7 @@ data:
         keepDuration = 3600
 kind: ConfigMap
 metadata:
-  name: cliapp-buildkitd.toml-6t6kb8d247
+  name: buildkitd.toml-6t6kb8d247
   namespace: cliapp-system
 ---
 apiVersion: v1
@@ -474,7 +474,7 @@ metadata:
 apiVersion: v1
 kind: Service
 metadata:
-  name: cliapp-buildkitd
+  name: buildkitd
   namespace: cliapp-system
 spec:
   ports:
@@ -523,7 +523,7 @@ metadata:
   labels:
     app: builder
     owner: warm-metal.tech
-  name: cliapp-buildkitd
+  name: buildkitd
   namespace: cliapp-system
 spec:
   replicas: 1
@@ -597,7 +597,7 @@ spec:
           items:
           - key: buildkitd.toml
             path: buildkitd.toml
-          name: cliapp-buildkitd.toml-6t6kb8d247
+          name: buildkitd.toml-6t6kb8d247
         name: buildkitd-conf
       - hostPath:
           path: /run/containerd
@@ -693,7 +693,7 @@ spec:
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: cliapp-csi-image-warm-metal
+  name: csi-image-warm-metal
   namespace: cliapp-system
 spec:
   selector:
@@ -759,7 +759,7 @@ spec:
         - mountPath: /registration
           name: registration-dir
       hostNetwork: true
-      serviceAccountName: cliapp-csi-image-warm-metal
+      serviceAccountName: csi-image-warm-metal
       volumes:
       - hostPath:
           path: /mnt/vda1/var/lib/containerd
@@ -785,7 +785,7 @@ spec:
 apiVersion: storage.k8s.io/v1
 kind: CSIDriver
 metadata:
-  name: cliapp-csi-image.warm-metal.tech
+  name: csi-image.warm-metal.tech
   namespace: cliapp-system
 spec:
   attachRequired: false

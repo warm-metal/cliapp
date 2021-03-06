@@ -1,4 +1,7 @@
+namespace: cliapp-system
+
 bases:
+- ../deps
 - ../default
 
 patchesStrategicMerge:

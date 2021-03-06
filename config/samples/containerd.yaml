@@ -129,14 +129,14 @@ status:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: cliapp-csi-image-warm-metal
+  name: cliapp-session-gate
   namespace: cliapp-system
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: cliapp-session-gate
-  namespace: cliapp-system
+  name: csi-image-warm-metal
+  namespace: system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -165,18 +165,6 @@ rules:
   verbs:
   - create
   - patch
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: cliapp-csi-image-warm-metal
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - secrets
-  verbs:
-  - get
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -334,6 +322,18 @@ rules:
   - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: csi-image-warm-metal
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: cliapp-leader-election-rolebinding
@@ -345,19 +345,6 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: default
-  namespace: cliapp-system
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: cliapp-csi-image-warm-metal
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: cliapp-csi-image-warm-metal
-subjects:
-- kind: ServiceAccount
-  name: cliapp-csi-image-warm-metal
   namespace: cliapp-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -412,37 +399,18 @@ subjects:
   kind: Group
   name: system:serviceaccounts
 ---
-apiVersion: v1
-data:
-  buildkitd.toml: |-
-    debug = true
-    # root is where all buildkit state is stored.
-    root = "/var/lib/buildkit"
-    snapshot-root = "/var/lib/buildkit/local-snapshot"
-    # insecure-entitlements allows insecure entitlements, disabled by default.
-    insecure-entitlements = [ "network.host", "security.insecure" ]
-
-    [grpc]
-      address = [ "unix:///run/buildkit/buildkitd.sock", "tcp://0.0.0.0:2375" ]
-      uid = 0
-      gid = 0
-
-    [worker.oci]
-      enabled = false
-
-    [worker.containerd]
-      address = "/run/containerd/containerd.sock"
-      enabled = true
-      platforms = [ "linux/amd64", "linux/arm64" ]
-      namespace = "k8s.io"
-      gc = true
-      [[worker.containerd.gcpolicy]]
-        keepBytes = 10240000000
-        keepDuration = 3600
-kind: ConfigMap
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
 metadata:
-  name: cliapp-buildkitd.toml-6t6kb8d247
-  namespace: cliapp-system
+  name: csi-image-warm-metal
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: csi-image-warm-metal
+subjects:
+- kind: ServiceAccount
+  name: csi-image-warm-metal
+  namespace: system
 ---
 apiVersion: v1
 data:
@@ -472,20 +440,35 @@ metadata:
   namespace: cliapp-system
 ---
 apiVersion: v1
-kind: Service
+data:
+  buildkitd.toml: |-
+    debug = true
+    # root is where all buildkit state is stored.
+    root = "/var/lib/buildkit"
+    snapshot-root = "/var/lib/buildkit/local-snapshot"
+    # insecure-entitlements allows insecure entitlements, disabled by default.
+    insecure-entitlements = [ "network.host", "security.insecure" ]
+
+    [grpc]
+      address = [ "unix:///run/buildkit/buildkitd.sock", "tcp://0.0.0.0:2375" ]
+      uid = 0
+      gid = 0
+
+    [worker.oci]
+      enabled = false
+
+    [worker.containerd]
+      address = "/run/containerd/containerd.sock"
+      enabled = true
+      platforms = [ "linux/amd64", "linux/arm64" ]
+      namespace = "k8s.io"
+      gc = true
+      [[worker.containerd.gcpolicy]]
+        keepBytes = 10240000000
+        keepDuration = 3600
+kind: ConfigMap
 metadata:
-  name: cliapp-buildkitd
-  namespace: cliapp-system
-spec:
-  ports:
-  - name: buildkitd
-    port: 2375
-    protocol: TCP
-    targetPort: 2375
-  selector:
-    app: builder
-    owner: warm-metal.tech
-  type: LoadBalancer
+  name: buildkitd.toml-6t6kb8d247
 ---
 apiVersion: v1
 kind: Service
@@ -517,92 +500,21 @@ spec:
     app: session-gate
   type: LoadBalancer
 ---
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: v1
+kind: Service
 metadata:
-  labels:
+  name: buildkitd
+  namespace: system
+spec:
+  ports:
+  - name: buildkitd
+    port: 2375
+    protocol: TCP
+    targetPort: 2375
+  selector:
     app: builder
     owner: warm-metal.tech
-  name: cliapp-buildkitd
-  namespace: cliapp-system
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: builder
-      owner: warm-metal.tech
-  strategy:
-    type: Recreate
-  template:
-    metadata:
-      labels:
-        app: builder
-        owner: warm-metal.tech
-    spec:
-      containers:
-      - image: docker.io/warmmetal/buildkit:0.8.1-1
-        imagePullPolicy: IfNotPresent
-        livenessProbe:
-          exec:
-            command:
-            - buildctl
-            - debug
-            - workers
-          failureThreshold: 3
-          initialDelaySeconds: 5
-          periodSeconds: 30
-          successThreshold: 1
-          timeoutSeconds: 1
-        name: buildkitd
-        ports:
-        - containerPort: 2375
-          name: service
-          protocol: TCP
-        readinessProbe:
-          exec:
-            command:
-            - buildctl
-            - debug
-            - workers
-          failureThreshold: 3
-          initialDelaySeconds: 5
-          periodSeconds: 30
-          successThreshold: 1
-          timeoutSeconds: 1
-        securityContext:
-          privileged: true
-        volumeMounts:
-        - mountPath: /var/lib/containerd
-          name: containerd-root
-        - mountPath: /var/lib/buildkit
-          mountPropagation: Bidirectional
-          name: buildkit-root
-        - mountPath: /etc/buildkit/buildkitd.toml
-          name: buildkitd-conf
-          subPath: buildkitd.toml
-        - mountPath: /run/containerd
-          mountPropagation: Bidirectional
-          name: containerd-runtime
-      volumes:
-      - hostPath:
-          path: /var/lib/containerd
-          type: Directory
-        name: containerd-root
-      - hostPath:
-          path: /var/lib/buildkit
-          type: DirectoryOrCreate
-        name: buildkit-root
-      - configMap:
-          defaultMode: 420
-          items:
-          - key: buildkitd.toml
-            path: buildkitd.toml
-          name: cliapp-buildkitd.toml-6t6kb8d247
-        name: buildkitd-conf
-      - hostPath:
-          path: /run/containerd
-          type: Directory
-        name: containerd-runtime
+  type: LoadBalancer
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -691,10 +603,97 @@ spec:
       serviceAccountName: cliapp-session-gate
 ---
 apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: builder
+    owner: warm-metal.tech
+  name: buildkitd
+  namespace: system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: builder
+      owner: warm-metal.tech
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: builder
+        owner: warm-metal.tech
+    spec:
+      containers:
+      - image: docker.io/warmmetal/buildkit:0.8.1-1
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          exec:
+            command:
+            - buildctl
+            - debug
+            - workers
+          failureThreshold: 3
+          initialDelaySeconds: 5
+          periodSeconds: 30
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: buildkitd
+        ports:
+        - containerPort: 2375
+          name: service
+          protocol: TCP
+        readinessProbe:
+          exec:
+            command:
+            - buildctl
+            - debug
+            - workers
+          failureThreshold: 3
+          initialDelaySeconds: 5
+          periodSeconds: 30
+          successThreshold: 1
+          timeoutSeconds: 1
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - mountPath: /var/lib/containerd
+          name: containerd-root
+        - mountPath: /var/lib/buildkit
+          mountPropagation: Bidirectional
+          name: buildkit-root
+        - mountPath: /etc/buildkit/buildkitd.toml
+          name: buildkitd-conf
+          subPath: buildkitd.toml
+        - mountPath: /run/containerd
+          mountPropagation: Bidirectional
+          name: containerd-runtime
+      volumes:
+      - hostPath:
+          path: /var/lib/containerd
+          type: Directory
+        name: containerd-root
+      - hostPath:
+          path: /var/lib/buildkit
+          type: DirectoryOrCreate
+        name: buildkit-root
+      - configMap:
+          defaultMode: 420
+          items:
+          - key: buildkitd.toml
+            path: buildkitd.toml
+          name: buildkitd.toml
+        name: buildkitd-conf
+      - hostPath:
+          path: /run/containerd
+          type: Directory
+        name: containerd-runtime
+---
+apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: cliapp-csi-image-warm-metal
-  namespace: cliapp-system
+  name: csi-image-warm-metal
+  namespace: system
 spec:
   selector:
     matchLabels:
@@ -759,7 +758,7 @@ spec:
         - mountPath: /registration
           name: registration-dir
       hostNetwork: true
-      serviceAccountName: cliapp-csi-image-warm-metal
+      serviceAccountName: csi-image-warm-metal
       volumes:
       - hostPath:
           path: /var/lib/containerd
@@ -785,8 +784,7 @@ spec:
 apiVersion: storage.k8s.io/v1
 kind: CSIDriver
 metadata:
-  name: cliapp-csi-image.warm-metal.tech
-  namespace: cliapp-system
+  name: csi-image.warm-metal.tech
 spec:
   attachRequired: false
   podInfoOnMount: true
