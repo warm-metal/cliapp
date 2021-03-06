@@ -7,6 +7,7 @@ import (
 	appcorev1 "github.com/warm-metal/cliapp/pkg/apis/cliapp/v1"
 	"golang.org/x/xerrors"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"path/filepath"
 	"strings"
@@ -64,6 +65,8 @@ func (r *CliAppReconciler) convertToManifest(app *appcorev1.CliApp) (*corev1.Pod
 		},
 	}, nil
 }
+
+var enabled = true
 
 func (r *CliAppReconciler) applyAppConfig(pod *corev1.Pod, targetContainerID int, app *appcorev1.CliApp) error {
 	var hostVolumes []corev1.Volume
@@ -144,6 +147,16 @@ func (r *CliAppReconciler) applyAppConfig(pod *corev1.Pod, targetContainerID int
 
 	pod.ObjectMeta.Name = fmt.Sprintf("%s-%s", app.Name, rand.String(5))
 	pod.ObjectMeta.Namespace = app.Namespace
+	pod.ObjectMeta.OwnerReferences = []metav1.OwnerReference{
+		{
+			APIVersion:         app.APIVersion,
+			Kind:               app.Kind,
+			Name:               app.Name,
+			UID:                app.UID,
+			Controller:         &enabled,
+			BlockOwnerDeletion: &enabled,
+		},
+	}
 	if pod.ObjectMeta.Labels == nil {
 		pod.ObjectMeta.Labels = map[string]string{appLabel: app.Name}
 	} else {

@@ -24,4 +24,4 @@ spec:
         - "--health-probe-bind-address=:8081"
         - "--metrics-bind-address=127.0.0.1:8080"
         - "--leader-elect"
-        - "--builder-svc=tcp://cliapp-buildkitd:2375"
+        - "--builder-svc=tcp://buildkitd:2375"
