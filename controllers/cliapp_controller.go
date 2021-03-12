@@ -69,7 +69,6 @@ func (r *CliAppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res
 
 	app := &appcorev1.CliApp{}
 	if err = r.Get(ctx, req.NamespacedName, app); err != nil {
-		log.Error(err, "unable to fetch app", "app", req.NamespacedName.String())
 		return result, client.IgnoreNotFound(err)
 	}
 

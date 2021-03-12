@@ -20,7 +20,7 @@ func (r *CliAppReconciler) makeAppLive(
 
 	log.V(1).Info("app status", "current", app.Status.Phase, "target", app.Spec.TargetPhase)
 
-	if app.Spec.Fork != nil && app.Status.Phase != appcorev1.CliAppPhaseBuilding && app.Spec.Image == "" {
+	if app.Spec.Fork == nil && app.Status.Phase != appcorev1.CliAppPhaseBuilding && app.Spec.Image == "" {
 		log.V(1).Info("build image")
 		if app.Spec.Dockerfile == "" {
 			err = xerrors.Errorf("specify either image or dockerfile for the app")

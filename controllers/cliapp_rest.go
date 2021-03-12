@@ -55,7 +55,7 @@ func (r *CliAppReconciler) makeAppRest(ctx context.Context, log logr.Logger, app
 		}
 
 		if len(podList.Items) == 0 {
-			if !app.Spec.UninstallUnlessLive {
+			if app.Spec.UninstallUnlessLive {
 				err = r.Delete(ctx, app)
 			} else {
 				err = r.transitPhaseTo(ctx, log, app, appcorev1.CliAppPhaseRest)
