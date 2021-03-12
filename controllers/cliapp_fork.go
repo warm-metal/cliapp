@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	appcorev1 "github.com/warm-metal/cliapp/pkg/apis/cliapp/v1"
 	"golang.org/x/xerrors"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -13,29 +14,29 @@ import (
 )
 
 func (r *CliAppReconciler) fetchForkTargetPod(
-	namespace string, kindAndName string, container string,
+	namespace string, fork *appcorev1.ForkObject,
 ) (pod *corev1.Pod, target int, err error) {
 	result := resource.NewBuilder(r.RestClient).
 		Unstructured().
 		ContinueOnError().
 		NamespaceParam(namespace).DefaultNamespace().
-		ResourceTypeOrNameArgs(true, kindAndName).
+		ResourceTypeOrNameArgs(true, fork.Object).
 		SingleResourceType().
 		Flatten().
 		Do()
 	if result.Err() != nil {
-		err = xerrors.Errorf(`unable to fetch "%s": %s`, kindAndName, result.Err())
+		err = xerrors.Errorf(`unable to fetch "%s": %s`, fork.Object, result.Err())
 		return
 	}
 
 	infos, err := result.Infos()
 	if err != nil {
-		err = xerrors.Errorf(`unable to fetch result of "%s": %s`, kindAndName, result.Err())
+		err = xerrors.Errorf(`unable to fetch result of "%s": %s`, fork.Object, result.Err())
 		return
 	}
 
 	if len(infos) == 0 {
-		err = xerrors.Errorf(`no "%#v" found`, kindAndName)
+		err = xerrors.Errorf(`no "%#v" found`, fork.Object)
 		return
 	}
 
@@ -195,23 +196,24 @@ func (r *CliAppReconciler) fetchForkTargetPod(
 	}
 
 	pod = &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Labels: labels,
-		},
 		Spec: *podTmpl,
 	}
 
-	if len(container) > 1 {
+	if fork.WithEnvs {
+		pod.Labels = labels
+	}
+
+	if len(fork.Container) > 1 {
 		target = -1
 		for i, c := range pod.Spec.Containers {
-			if c.Name == container {
+			if c.Name == fork.Container {
 				target = i
 				break
 			}
 		}
 
 		if target < 0 {
-			err = xerrors.Errorf("container %s doesn't found in %s", container, kindAndName)
+			err = xerrors.Errorf("container %s doesn't found in %s", fork.Container, fork.Object)
 			return
 		}
 	} else if len(pod.Spec.Containers) > 0 {
@@ -220,7 +222,7 @@ func (r *CliAppReconciler) fetchForkTargetPod(
 			containers[i] = pod.Spec.Containers[i].Name
 		}
 
-		err = xerrors.Errorf("%s has more than 1 container. Specify one of %v", kindAndName, containers)
+		err = xerrors.Errorf("%s has more than 1 container. Specify one of %v", fork.Object, containers)
 		return
 	}
 

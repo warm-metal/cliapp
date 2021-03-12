@@ -45,10 +45,6 @@ spec:
                 items:
                   type: string
                 type: array
-              container:
-                description: Set the target container name if the ForObject has more
-                  than one containers.
-                type: string
               distro:
                 description: 'Distro the app dependents. The default is alpine. Valid
                   values are: - "alpine" (default): The app works on Alpine; - "ubuntu:
@@ -69,10 +65,22 @@ spec:
                 type: array
               fork:
                 description: Specify that the app will fork a workload in the same
-                  namespace. The workload could be either of Deployment, StatefulSet,
-                  DaemonSet, ReplicaSet, (Cron)Job, or Pod. The valid format would
-                  be Kind/Name.
-                type: string
+                  namespace.
+                properties:
+                  container:
+                    description: Set the target container name if the ForObject has
+                      more than one containers.
+                    type: string
+                  object:
+                    description: Specify the kind and name of the object to be forked.
+                      The object could be either of Deployment, StatefulSet, DaemonSet,
+                      ReplicaSet, (Cron)Job, or Pod. The valid format would be Kind/Name.
+                    type: string
+                  withEnvs:
+                    description: Set if expected to inherit envs from the original
+                      workload
+                    type: boolean
+                type: object
               hostpath:
                 description: Host paths would be mounted to the app. Each HostPath
                   can be an absolute host path, or in the form of "hostpath:mount-point".

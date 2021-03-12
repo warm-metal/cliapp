@@ -28,14 +28,8 @@ type CliAppSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Specify that the app will fork a workload in the same namespace.
-	// The workload could be either of Deployment, StatefulSet, DaemonSet, ReplicaSet, (Cron)Job, or Pod.
-	// The valid format would be Kind/Name.
 	// +optional
-	ForkObject string `json:"fork,omitempty"`
-
-	// Set the target container name if the ForObject has more than one containers.
-	// +optional
-	ForkContainer string `json:"container,omitempty"`
+	Fork *ForkObject `json:"fork,omitempty"`
 
 	// Specify the image the app uses.
 	// Only one of Image or Dockerfile can be set.
@@ -85,6 +79,22 @@ type CliAppSpec struct {
 	// Set if uninstalls the App when it transits out of phase Live
 	// +optional
 	UninstallUnlessLive bool `json:"uninstall,omitempty"`
+}
+
+type ForkObject struct {
+	// Specify the kind and name of the object to be forked.
+	// The object could be either of Deployment, StatefulSet, DaemonSet, ReplicaSet, (Cron)Job, or Pod.
+	// The valid format would be Kind/Name.
+	// +optional
+	Object string `json:"object,omitempty"`
+
+	// Set the target container name if the ForObject has more than one containers.
+	// +optional
+	Container string `json:"container,omitempty"`
+
+	// Set if expected to inherit envs from the original workload
+	// +optional
+	WithEnvs bool `json:"withEnvs,omitempty"`
 }
 
 // CliAppDistro describes Linux Distro the app depends.

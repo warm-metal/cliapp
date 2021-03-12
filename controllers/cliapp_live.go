@@ -20,7 +20,7 @@ func (r *CliAppReconciler) makeAppLive(
 
 	log.V(1).Info("app status", "current", app.Status.Phase, "target", app.Spec.TargetPhase)
 
-	if len(app.Spec.ForkObject) == 0 && app.Status.Phase != appcorev1.CliAppPhaseBuilding && app.Spec.Image == "" {
+	if app.Spec.Fork == nil && app.Status.Phase != appcorev1.CliAppPhaseBuilding && app.Spec.Image == "" {
 		log.V(1).Info("build image")
 		if app.Spec.Dockerfile == "" {
 			err = xerrors.Errorf("specify either image or dockerfile for the app")
@@ -91,10 +91,11 @@ func (r *CliAppReconciler) makeAppLive(
 				result.RequeueAfter = DefaultRequeueDuration
 				return
 			}
+		} else {
+			log.Info("no pod found")
 		}
 
 		err = r.startApp(ctx, app, log)
-		result.RequeueAfter = DefaultRequeueDuration
 
 	case appcorev1.CliAppPhaseBuilding:
 		if len(app.Spec.Image) == 0 {

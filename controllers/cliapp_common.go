@@ -51,7 +51,7 @@ func (r *CliAppReconciler) transitPhaseTo(
 		if len(app.Status.PodName) == 0 {
 			panic("set Pod name along with phase Live")
 		}
-		if len(app.Spec.Image) == 0 && len(app.Spec.ForkObject) == 0 {
+		if len(app.Spec.Image) == 0 && app.Spec.Fork == nil {
 			panic("set Image along with phase Live")
 		}
 	}
@@ -69,8 +69,8 @@ func (r *CliAppReconciler) transitPhaseTo(
 }
 
 func validateApp(app *appcorev1.CliApp) error {
-	if len(app.Spec.Image) == 0 && len(app.Spec.Dockerfile) == 0 && len(app.Spec.ForkObject) == 0 {
-		return xerrors.Errorf("specify either image, dockerfile, or ForkObject for the app")
+	if len(app.Spec.Image) == 0 && len(app.Spec.Dockerfile) == 0 && app.Spec.Fork == nil {
+		return xerrors.Errorf("specify either image, dockerfile, or Fork for the app")
 	}
 
 	if app.Spec.TargetPhase == "" {
