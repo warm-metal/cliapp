@@ -18,26 +18,26 @@ const (
 )
 
 func (r *CliAppReconciler) startApp(ctx context.Context, app *appcorev1.CliApp, log logr.Logger) (err error) {
-	var manifest *corev1.Pod
+	var pod *corev1.Pod
 	targetContainerID := 0
-	if len(app.Spec.ForkObject) > 0 {
-		manifest, targetContainerID, err = r.fetchForkTargetPod(app.Namespace, app.Spec.ForkObject, app.Spec.ForkContainer)
+	if app.Spec.Fork != nil {
+		pod, targetContainerID, err = r.fetchForkTargetPod(app.Namespace, app.Spec.Fork)
 	} else {
-		manifest, err = r.convertToManifest(app)
+		pod, err = r.convertToManifest(app)
 	}
 
 	if err != nil {
-		log.Error(err, "unable to generate manifest", "spec", app.Spec)
+		log.Error(err, "unable to generate pod manifest", "spec", app.Spec)
 		return err
 	}
 
-	err = r.applyAppConfig(manifest, targetContainerID, app)
+	err = r.applyAppConfig(pod, targetContainerID, app)
 	if err != nil {
 		return err
 	}
 
-	// FIXME watch all these pods and repair them on fail
-	if err = r.Create(ctx, manifest); err != nil {
+	log.Info("create pod", "pod", pod.Name, "namespace", pod.Namespace, "labels", pod.Labels)
+	if err = r.Create(ctx, pod); err != nil {
 		log.Error(err, "unable to create pod")
 	}
 
