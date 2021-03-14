@@ -59,9 +59,13 @@ func (r *CliAppReconciler) makeAppLive(
 				return
 			}
 
-			if errors.IsNotFound(err) && metav1.Now().Sub(app.Status.LastPhaseTransition.Time) < 10*time.Second {
-				log.Info("pod not found. will wait at most 10 seconds before recreating")
-				return
+			if errors.IsNotFound(err) {
+				elapse := metav1.Now().Sub(app.Status.LastPhaseTransition.Time)
+				if elapse < 10*time.Second {
+					log.Info("pod not found. will wait at most 10 seconds before recreating")
+					result.RequeueAfter = 10*time.Second - elapse
+					return result, xerrors.Errorf("pod not found. will create %s later", result.RequeueAfter)
+				}
 			}
 
 			if err == nil {
