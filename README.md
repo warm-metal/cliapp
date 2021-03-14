@@ -8,6 +8,8 @@ we can run command ctr on the Host to check status of containerd on the single c
 
 Currently, cliapp only supports **containerd** as the container runtime.
 
+![overview](https://github.com/warm-metal/official-site/blob/master/image/cliapp-overview.gif?raw=true)
+
 ## Install
 
 We also build a kubectl plugin [kubectl-dev](https://github.com/warm-metal/kubectl-dev#install) to support cliapp management. 
