@@ -41,11 +41,9 @@ func (r *CliAppReconciler) makeAppRest(ctx context.Context, log logr.Logger, app
 
 		fallthrough
 	case "", appcorev1.CliAppPhaseRecovering:
-		if err = r.transitPhaseTo(ctx, log, app, appcorev1.CliAppPhaseShuttingDown); err != nil {
-			return
-		}
-
-		fallthrough
+		err = r.transitPhaseTo(ctx, log, app, appcorev1.CliAppPhaseShuttingDown)
+		result.Requeue = true
+		return
 	case appcorev1.CliAppPhaseShuttingDown:
 		podList := corev1.PodList{}
 		err = r.List(ctx, &podList, client.InNamespace(app.Namespace), client.MatchingLabels{appLabel: app.Name})
