@@ -99,7 +99,7 @@ func (r *CliAppReconciler) makeAppLive(
 			}
 		}
 
-		return result, nil
+		return result, err
 
 	case appcorev1.CliAppPhaseBuilding:
 		if len(app.Spec.Image) == 0 {

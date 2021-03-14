@@ -216,7 +216,7 @@ func (r *CliAppReconciler) fetchForkTargetPod(
 			err = xerrors.Errorf("container %s doesn't found in %s", fork.Container, fork.Object)
 			return
 		}
-	} else if len(pod.Spec.Containers) > 0 {
+	} else if len(pod.Spec.Containers) > 1 {
 		containers := make([]string, len(pod.Spec.Containers))
 		for i := range pod.Spec.Containers {
 			containers[i] = pod.Spec.Containers[i].Name
