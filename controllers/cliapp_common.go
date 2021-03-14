@@ -77,6 +77,10 @@ func validateApp(app *appcorev1.CliApp) error {
 		return xerrors.Errorf("TargetPhase is not set")
 	}
 
+	if app.Spec.TargetPhase != appcorev1.CliAppPhaseRest && app.Spec.TargetPhase != appcorev1.CliAppPhaseLive {
+		return xerrors.Errorf("TargetPhase must be %q or %q", appcorev1.CliAppPhaseRest, appcorev1.CliAppPhaseLive)
+	}
+
 	if len(app.Spec.Distro) > 0 {
 		if app.Spec.Distro != appcorev1.CliAppDistroAlpine && app.Spec.Distro != appcorev1.CliAppDistroUbuntu {
 			return xerrors.Errorf("Spec.Distro must be either alpine or ubuntu")

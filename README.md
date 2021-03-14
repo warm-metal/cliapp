@@ -6,7 +6,7 @@ especially for minikube clusters running on hypervisor.
 That is, considering a single node minikube cluster, by installing a cliapp named `ctr`,
 we can run command ctr on the Host to check status of containerd on the single cluster node.
 
-Currently, cliapp only support **containerd** as the container runtime.
+Currently, cliapp only supports **containerd** as the container runtime.
 
 ## Install
 

@@ -77,8 +77,10 @@ func (r *CliAppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res
 		if err != nil {
 			app.Status.Error = err.Error()
 			if err := r.Status().Update(ctx, app); err != nil {
-				log.Error(err, "unable to update app")
+				log.Error(err, "unable to update error state")
 			}
+
+			err = nil
 		}
 	}()
 

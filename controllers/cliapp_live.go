@@ -4,11 +4,15 @@ import (
 	"context"
 	"github.com/go-logr/logr"
 	appcorev1 "github.com/warm-metal/cliapp/pkg/apis/cliapp/v1"
+	"github.com/warm-metal/cliapp/pkg/utils"
 	"golang.org/x/xerrors"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"time"
 )
 
 func (r *CliAppReconciler) makeAppLive(
@@ -43,59 +47,55 @@ func (r *CliAppReconciler) makeAppLive(
 
 	switch app.Status.Phase {
 	case "", appcorev1.CliAppPhaseShuttingDown, appcorev1.CliAppPhaseWaitingForSessions, appcorev1.CliAppPhaseRest:
-		if err = r.transitPhaseTo(ctx, log, app, appcorev1.CliAppPhaseRecovering); err != nil {
-			return
-		}
-
-		fallthrough
+		err = r.transitPhaseTo(ctx, log, app, appcorev1.CliAppPhaseRecovering)
+		result.Requeue = true
+		return
 	case appcorev1.CliAppPhaseRecovering:
-		podList := corev1.PodList{}
-		err = r.List(ctx, &podList, client.InNamespace(app.Namespace), client.MatchingLabels{appLabel: app.Name})
-		if err != nil {
-			log.Error(err, "unable to list app Pods")
-			return
-		}
+		if len(app.Status.PodName) > 0 {
+			pod := corev1.Pod{}
+			err = r.Get(ctx, types.NamespacedName{Name: app.Status.PodName, Namespace: app.Namespace}, &pod)
+			if err != nil && !errors.IsNotFound(err) {
+				log.Error(err, "unable to get app Pod")
+				return
+			}
 
-		if len(podList.Items) > 0 {
-			_, ready, starting, terminatingDesc, readyDesc, startingDesc := groupPods(&podList)
-			log.Info("Pods of app", "terminating", terminatingDesc, "ready", readyDesc, "starting", startingDesc)
+			if errors.IsNotFound(err) && metav1.Now().Sub(app.Status.LastPhaseTransition.Time) < 10*time.Second {
+				log.Info("pod not found. will wait at most 10 seconds before recreating")
+				return
+			}
 
-			if len(ready) > 0 {
-				if len(starting) > 0 {
-					err = xerrors.Errorf("app has %d Pods are still booting", len(starting))
-					return
-				}
-
-				if len(ready) > 1 {
-					log.Info("app has more than 1 ready Pods", "num", len(ready))
-					for i := 1; i < len(ready); i++ {
-						log.Info("destroy pod", "pod", ready[i].Name)
-						if err = r.Delete(ctx, ready[i]); err != nil {
-							log.Error(err, "unable to destroy pod", "pod", ready[i].Name)
-						}
+			if err == nil {
+				if utils.IsPodReady(&pod) {
+					if err = r.transitPhaseTo(ctx, log, app, appcorev1.CliAppPhaseLive); err != nil {
+						return
 					}
-				}
-
-				app.Status.PodName = ready[0].Name
-				if err = r.transitPhaseTo(ctx, log, app, appcorev1.CliAppPhaseLive); err != nil {
 					return
 				}
-				return
-			}
 
-			if len(starting) > 0 {
-				if len(starting) > 1 {
-					err = xerrors.Errorf("app has %d Pods are still booting", len(starting))
+				if pod.DeletionTimestamp == nil {
+					log.Info("wait for pod to be ready", "pod", app.Status.PodName)
+					return
 				}
 
-				result.RequeueAfter = DefaultRequeueDuration
-				return
+				log.Info("pod is terminating. will create a new one.", "pod", app.Status.PodName)
 			}
-		} else {
-			log.Info("no pod found")
 		}
 
-		err = r.startApp(ctx, app, log)
+		log.Info("create pod")
+		pod, err := r.startApp(ctx, app, log)
+		if err == nil {
+			app.Status.PodName = pod.Name
+			if err := r.Status().Update(ctx, app); err != nil {
+				log.Error(err, "unable to save pod name to app. delete pod", "pod", pod.Name)
+				if err := r.Delete(ctx, pod); err != nil {
+					log.Error(err, "unable to delete pod", "pod", pod.Name)
+				}
+
+				return result, err
+			}
+		}
+
+		return result, nil
 
 	case appcorev1.CliAppPhaseBuilding:
 		if len(app.Spec.Image) == 0 {
@@ -126,6 +126,4 @@ func (r *CliAppReconciler) makeAppLive(
 	default:
 		panic(app.Status.Phase)
 	}
-
-	return
 }

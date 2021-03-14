@@ -17,8 +17,9 @@ const (
 	appLabel = "cliapp.warm-metal.tech"
 )
 
-func (r *CliAppReconciler) startApp(ctx context.Context, app *appcorev1.CliApp, log logr.Logger) (err error) {
-	var pod *corev1.Pod
+func (r *CliAppReconciler) startApp(
+	ctx context.Context, app *appcorev1.CliApp, log logr.Logger,
+) (pod *corev1.Pod, err error) {
 	targetContainerID := 0
 	if app.Spec.Fork != nil {
 		pod, targetContainerID, err = r.fetchForkTargetPod(app.Namespace, app.Spec.Fork)
@@ -28,12 +29,11 @@ func (r *CliAppReconciler) startApp(ctx context.Context, app *appcorev1.CliApp, 
 
 	if err != nil {
 		log.Error(err, "unable to generate pod manifest", "spec", app.Spec)
-		return err
+		return
 	}
 
-	err = r.applyAppConfig(pod, targetContainerID, app)
-	if err != nil {
-		return err
+	if err = r.applyAppConfig(pod, targetContainerID, app); err != nil {
+		return
 	}
 
 	log.Info("create pod", "pod", pod.Name, "namespace", pod.Namespace, "labels", pod.Labels)
@@ -41,7 +41,7 @@ func (r *CliAppReconciler) startApp(ctx context.Context, app *appcorev1.CliApp, 
 		log.Error(err, "unable to create pod")
 	}
 
-	return err
+	return pod, err
 }
 
 const (
