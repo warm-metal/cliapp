@@ -130,9 +130,9 @@ func (r *CliAppReconciler) applyAppConfig(pod *corev1.Pod, targetContainerID int
 		envs = append(envs, env)
 	}
 
-	sh := appcorev1.CliAppShellBash
-	distro := appcorev1.CliAppDistroAlpine
-	ctxImage := r.AppContextImage
+	sh := r.DefaultShell
+	distro := r.DefaultDistro
+	ctxImage := r.DefaultAppContextImage
 	if len(ctxImage) == 0 {
 		if len(app.Spec.Shell) > 0 {
 			sh = app.Spec.Shell

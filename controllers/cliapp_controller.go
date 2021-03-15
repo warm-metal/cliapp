@@ -44,7 +44,9 @@ type CliAppReconciler struct {
 	DurationIdleLiveLasts time.Duration
 	ControllerNamespace   string
 
-	AppContextImage string
+	DefaultAppContextImage string
+	DefaultShell           appcorev1.CliAppShell
+	DefaultDistro          appcorev1.CliAppDistro
 }
 
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;create;update;patch;delete;deletecollection
