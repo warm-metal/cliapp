@@ -82,16 +82,37 @@ func validateApp(app *appcorev1.CliApp) error {
 	}
 
 	if len(app.Spec.Distro) > 0 {
-		if app.Spec.Distro != appcorev1.CliAppDistroAlpine && app.Spec.Distro != appcorev1.CliAppDistroUbuntu {
-			return xerrors.Errorf("Spec.Distro must be either alpine or ubuntu")
+		if err := ValidateDistro(app.Spec.Distro); err != nil {
+			return err
 		}
+
 	}
 
 	if len(app.Spec.Shell) > 0 {
-		if app.Spec.Shell != appcorev1.CliAppShellZsh && app.Spec.Shell != appcorev1.CliAppShellBash {
-			return xerrors.Errorf("Spec.Shell must be either bash or zsh")
+		if err := ValidateShell(app.Spec.Shell); err != nil {
+			return err
 		}
 	}
 
 	return nil
+}
+
+func ValidateDistro(d appcorev1.CliAppDistro) error {
+	switch d {
+	case appcorev1.CliAppDistroAlpine, appcorev1.CliAppDistroUbuntu:
+		return nil
+	default:
+		return xerrors.Errorf("Spec.Distro must be either %q or %q",
+			appcorev1.CliAppDistroAlpine, appcorev1.CliAppDistroUbuntu)
+	}
+}
+
+func ValidateShell(s appcorev1.CliAppShell) error {
+	switch s {
+	case appcorev1.CliAppShellZsh, appcorev1.CliAppShellBash:
+		return nil
+	default:
+		return xerrors.Errorf("Spec.Shell must be either %q or %q",
+			appcorev1.CliAppShellZsh, appcorev1.CliAppShellBash)
+	}
 }

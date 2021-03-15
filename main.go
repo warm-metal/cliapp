@@ -67,14 +67,18 @@ func main() {
 			"Enabling this will ensure there is only one active controller manager.")
 
 	var idleLiveLasts time.Duration
-	flag.DurationVar(&idleLiveLasts, "idle-live", 10*time.Minute, "Duration in that apps still live "+
-		"even no active session")
+	flag.DurationVar(&idleLiveLasts, "idle-live", 10*time.Minute, "Duration in that the background pod "+
+		"would be still alive even no active session opened.")
 
 	var builderSvc string
 	flag.StringVar(&builderSvc, "builder-svc", "", "buildkitd endpoint used to build image for app")
 
-	var appContextImage string
-	flag.StringVar(&appContextImage, "app-context", "", "The context image to start an app")
+	var defaultAppContextImage, defaultShell, defaultDistro string
+	flag.StringVar(&defaultAppContextImage, "app-context", "", "The context image to start an app")
+	flag.StringVar(&defaultShell, "default-shell", "",
+		"The shell cliapp used as default. The default value is bash. You can also use zsh instead.")
+	flag.StringVar(&defaultDistro, "default-distro", "",
+		"Linux distro on that the app works as default. The default value is alpine. Another supported distro is ubuntu.")
 
 	opts := zap.Options{
 		Development: true,
@@ -97,16 +101,38 @@ func main() {
 		os.Exit(1)
 	}
 
+	if len(defaultDistro) > 0 {
+		if controllers.ValidateDistro(appcorev1.CliAppDistro(defaultDistro)) != nil {
+			setupLog.Error(err, "invalid distro")
+			os.Exit(1)
+		}
+	} else {
+		setupLog.Info("alpine is used as the default Linux distro")
+		defaultDistro = string(appcorev1.CliAppDistroAlpine)
+	}
+
+	if len(defaultShell) > 0 {
+		if controllers.ValidateShell(appcorev1.CliAppShell(defaultShell)) != nil {
+			setupLog.Error(err, "invalid shell")
+			os.Exit(1)
+		}
+	} else {
+		setupLog.Info("bash is used as the default shell")
+		defaultShell = string(appcorev1.CliAppShellBash)
+	}
+
 	if err = (&controllers.CliAppReconciler{
-		RestClient:            clientGetter(mgr),
-		Client:                mgr.GetClient(),
-		Log:                   ctrl.Log.WithName("controllers").WithName("CliApp"),
-		Scheme:                mgr.GetScheme(),
-		DurationIdleLiveLasts: idleLiveLasts,
-		BuilderEndpoint:       builderSvc,
-		ControllerNamespace:   utils.GetCurrentNamespace(),
-		ImageBuilder:          controllers.InitImageBuilderOrDie(builderSvc),
-		AppContextImage:       appContextImage,
+		RestClient:             clientGetter(mgr),
+		Client:                 mgr.GetClient(),
+		Log:                    ctrl.Log.WithName("controllers").WithName("CliApp"),
+		Scheme:                 mgr.GetScheme(),
+		DurationIdleLiveLasts:  idleLiveLasts,
+		BuilderEndpoint:        builderSvc,
+		ControllerNamespace:    utils.GetCurrentNamespace(),
+		ImageBuilder:           controllers.InitImageBuilderOrDie(builderSvc),
+		DefaultAppContextImage: defaultAppContextImage,
+		DefaultDistro:          appcorev1.CliAppDistro(defaultDistro),
+		DefaultShell:           appcorev1.CliAppShell(defaultShell),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CliApp")
 		os.Exit(1)
