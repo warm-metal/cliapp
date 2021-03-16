@@ -27,7 +27,6 @@ import (
 	"k8s.io/client-go/restmapper"
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"time"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -42,6 +41,7 @@ import (
 
 	"github.com/warm-metal/cliapp/controllers"
 	appcorev1 "github.com/warm-metal/cliapp/pkg/apis/cliapp/v1"
+	configv1 "github.com/warm-metal/cliapp/pkg/apis/config/v1"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -53,32 +53,16 @@ var (
 func init() {
 	utilruntime.Must(k8sScheme.AddToScheme(scheme))
 	utilruntime.Must(appcorev1.AddToScheme(scheme))
+	utilruntime.Must(configv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
 func main() {
-	var metricsAddr string
-	var enableLeaderElection bool
-	var probeAddr string
-	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
-	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
-		"Enable leader election for controller manager. "+
-			"Enabling this will ensure there is only one active controller manager.")
-
-	var idleLiveLasts time.Duration
-	flag.DurationVar(&idleLiveLasts, "idle-live", 10*time.Minute, "Duration in that the background pod "+
-		"would be still alive even no active session opened.")
-
-	var builderSvc string
-	flag.StringVar(&builderSvc, "builder-svc", "", "buildkitd endpoint used to build image for app")
-
-	var defaultAppContextImage, defaultShell, defaultDistro string
-	flag.StringVar(&defaultAppContextImage, "app-context", "", "The context image to start an app")
-	flag.StringVar(&defaultShell, "default-shell", "",
-		"The shell cliapp used as default. The default value is bash. You can also use zsh instead.")
-	flag.StringVar(&defaultDistro, "default-distro", "",
-		"Linux distro on that the app works as default. The default value is alpine. Another supported distro is ubuntu.")
+	var configFile string
+	flag.StringVar(&configFile, "config", "",
+		"The controller will load its initial configuration from this file. "+
+			"Omit this flag to use the default configuration values. "+
+			"Command-line flags override configuration from this file.")
 
 	opts := zap.Options{
 		Development: true,
@@ -86,39 +70,45 @@ func main() {
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
+	var err error
+	ctrlConfig := configv1.CliAppDefault{}
+	options := ctrl.Options{Scheme: scheme}
+	if configFile != "" {
+		options, err = options.AndFrom(ctrl.ConfigFile().AtPath(configFile).OfKind(&ctrlConfig))
+		if err != nil {
+			setupLog.Error(err, "unable to load the config file")
+			os.Exit(1)
+		}
+	}
+
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
-		Port:                   9443,
-		HealthProbeBindAddress: probeAddr,
-		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "337df6b6.cliapp.warm-metal.tech",
-	})
+	setupLog.Info("static config", "default", ctrlConfig)
+
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 
-	if len(defaultDistro) > 0 {
-		if controllers.ValidateDistro(appcorev1.CliAppDistro(defaultDistro)) != nil {
+	if len(ctrlConfig.DefaultDistro) > 0 {
+		if controllers.ValidateDistro(appcorev1.CliAppDistro(ctrlConfig.DefaultDistro)) != nil {
 			setupLog.Error(err, "invalid distro")
 			os.Exit(1)
 		}
 	} else {
 		setupLog.Info("alpine is used as the default Linux distro")
-		defaultDistro = string(appcorev1.CliAppDistroAlpine)
+		ctrlConfig.DefaultDistro = string(appcorev1.CliAppDistroAlpine)
 	}
 
-	if len(defaultShell) > 0 {
-		if controllers.ValidateShell(appcorev1.CliAppShell(defaultShell)) != nil {
+	if len(ctrlConfig.DefaultShell) > 0 {
+		if controllers.ValidateShell(appcorev1.CliAppShell(ctrlConfig.DefaultShell)) != nil {
 			setupLog.Error(err, "invalid shell")
 			os.Exit(1)
 		}
 	} else {
 		setupLog.Info("bash is used as the default shell")
-		defaultShell = string(appcorev1.CliAppShellBash)
+		ctrlConfig.DefaultShell = string(appcorev1.CliAppShellBash)
 	}
 
 	if err = (&controllers.CliAppReconciler{
@@ -126,13 +116,13 @@ func main() {
 		Client:                 mgr.GetClient(),
 		Log:                    ctrl.Log.WithName("controllers").WithName("CliApp"),
 		Scheme:                 mgr.GetScheme(),
-		DurationIdleLiveLasts:  idleLiveLasts,
-		BuilderEndpoint:        builderSvc,
+		DurationIdleLiveLasts:  ctrlConfig.DurationIdleLivesLast.Duration,
+		BuilderEndpoint:        ctrlConfig.BuilderService,
 		ControllerNamespace:    utils.GetCurrentNamespace(),
-		ImageBuilder:           controllers.InitImageBuilderOrDie(builderSvc),
-		DefaultAppContextImage: defaultAppContextImage,
-		DefaultDistro:          appcorev1.CliAppDistro(defaultDistro),
-		DefaultShell:           appcorev1.CliAppShell(defaultShell),
+		ImageBuilder:           controllers.InitImageBuilderOrDie(ctrlConfig.BuilderService),
+		DefaultAppContextImage: ctrlConfig.DefaultAppContextImage,
+		DefaultDistro:          appcorev1.CliAppDistro(ctrlConfig.DefaultDistro),
+		DefaultShell:           appcorev1.CliAppShell(ctrlConfig.DefaultShell),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CliApp")
 		os.Exit(1)
