@@ -3,7 +3,6 @@
 # It should be run by config/default
 resources:
 - bases/core.cliapp.warm-metal.tech_cliapps.yaml
-- bases/config.cliapp.warmmetal.tech_cliappdefaults.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:

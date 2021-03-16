@@ -1,8 +1,8 @@
-domain: cliapp.warmmetal.tech
+domain: cliapp.warm-metal.tech
 layout: go.kubebuilder.io/v3
 multigroup: true
 projectName: cliapp
-repo: github.com/warmmetal/cliapp
+repo: github.com/warm-metal/cliapp
 resources:
 - api:
     crdVersion: v1

@@ -1,7 +1,15 @@
-apiVersion: config.cliapp.warmmetal.tech/v1
+apiVersion: config.cliapp.warm-metal.tech/v1
 kind: CliAppDefault
-metadata:
-  name: cliappdefault-sample
-spec:
-  # Add fields here
-  foo: bar
+health:
+  healthProbeBindAddress: :8081
+metrics:
+  bindAddress: 127.0.0.1:8080
+webhook:
+  port: 9443
+leaderElection:
+  leaderElect: true
+  resourceName: 337df6b6.cliapp.warm-metal.tech
+defaultShell: bash
+defaultDistro: alpine
+maxDurationIdleLivesLast: 10m
+builder: tcp://buildkitd:2375

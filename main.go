@@ -83,6 +83,8 @@ func main() {
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
+	setupLog.Info("static config", "default", ctrlConfig)
+
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -114,7 +116,7 @@ func main() {
 		Client:                 mgr.GetClient(),
 		Log:                    ctrl.Log.WithName("controllers").WithName("CliApp"),
 		Scheme:                 mgr.GetScheme(),
-		DurationIdleLiveLasts:  ctrlConfig.IdleLiveDuration.Duration,
+		DurationIdleLiveLasts:  ctrlConfig.DurationIdleLivesLast.Duration,
 		BuilderEndpoint:        ctrlConfig.BuilderService,
 		ControllerNamespace:    utils.GetCurrentNamespace(),
 		ImageBuilder:           controllers.InitImageBuilderOrDie(ctrlConfig.BuilderService),

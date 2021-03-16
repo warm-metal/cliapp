@@ -43,7 +43,7 @@ type CliAppDefault struct {
 	DefaultDistro string `json:"defaultDistro,omitempty"`
 
 	// Duration in that the background pod would be still alive even no active session opened.
-	IdleLiveDuration metav1.Duration `json:"idleLiveDuration,omitempty"`
+	DurationIdleLivesLast metav1.Duration `json:"maxDurationIdleLivesLast,omitempty"`
 
 	// buildkitd endpoint used to build image for app
 	BuilderService string `json:"builder,omitempty"`

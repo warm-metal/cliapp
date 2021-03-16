@@ -1,4 +1,4 @@
-apiVersion: config.cliapp.warmmetal.tech/v1
+apiVersion: config.cliapp.warm-metal.tech/v1
 kind: CliAppDefault
 health:
   healthProbeBindAddress: :8081
@@ -11,5 +11,5 @@ leaderElection:
   resourceName: 337df6b6.cliapp.warm-metal.tech
 defaultShell: bash
 defaultDistro: alpine
-idleLiveDuration: 10m
+maxDurationIdleLivesLast: 10m
 builder: tcp://buildkitd:2375
