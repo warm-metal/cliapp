@@ -1,0 +1,24 @@
+# permissions for end users to edit cliappdefaults.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cliappdefault-editor-role
+rules:
+- apiGroups:
+  - config.cliapp.warmmetal.tech
+  resources:
+  - cliappdefaults
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - config.cliapp.warmmetal.tech
+  resources:
+  - cliappdefaults/status
+  verbs:
+  - get

@@ -1,0 +1,7 @@
+apiVersion: config.cliapp.warmmetal.tech/v1
+kind: CliAppDefault
+metadata:
+  name: cliappdefault-sample
+spec:
+  # Add fields here
+  foo: bar

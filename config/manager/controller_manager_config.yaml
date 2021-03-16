@@ -1,5 +1,5 @@
-apiVersion: controller-runtime.sigs.k8s.io/v1alpha1
-kind: ControllerManagerConfig
+apiVersion: config.cliapp.warmmetal.tech/v1
+kind: CliAppDefault
 health:
   healthProbeBindAddress: :8081
 metrics:
@@ -9,3 +9,7 @@ webhook:
 leaderElection:
   leaderElect: true
   resourceName: 337df6b6.cliapp.warm-metal.tech
+defaultShell: bash
+defaultDistro: alpine
+idleLiveDuration: 10m
+builder: tcp://buildkitd:2375
