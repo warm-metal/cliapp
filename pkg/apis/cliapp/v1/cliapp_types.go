@@ -160,6 +160,12 @@ const (
 //+genclient
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:printcolumn:name="TargetPhase",type=string,JSONPath=`.spec.targetPhase`
+//+kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
+//+kubebuilder:printcolumn:name="Pod",type=string,JSONPath=`.status.podName`
+//+kubebuilder:printcolumn:name="Error",type=string,JSONPath=`.status.error`
+//+kubebuilder:printcolumn:name="Distro",type=string,JSONPath=`.spec.distro`
+//+kubebuilder:printcolumn:name="Shell",type=string,JSONPath=`.spec.shell`
 
 // CliApp is the Schema for the cliapps API
 type CliApp struct {
