@@ -1,6 +1,7 @@
 resources:
 - buildkit.yaml
 - csi-image.yaml
+- csi-configmap.yaml
 
 configMapGenerator:
 - name: buildkitd.toml

@@ -9,6 +9,13 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - ""
+  resources:
   - pods
   verbs:
   - create
@@ -22,9 +29,9 @@ rules:
 - apiGroups:
   - apps
   resources:
-  - daemonset
+  - daemonsets
   - deployments
-  - replicaset
+  - replicasets
   - statefulsets
   verbs:
   - get
@@ -64,8 +71,8 @@ rules:
 - apiGroups:
   - extensions
   resources:
-  - daemonset
+  - daemonsets
   - deployments
-  - replicaset
+  - replicasets
   verbs:
   - get

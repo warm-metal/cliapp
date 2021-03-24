@@ -8,6 +8,7 @@ import (
 	"golang.org/x/xerrors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"path/filepath"
 	"strings"
@@ -32,7 +33,17 @@ func (r *CliAppReconciler) startApp(
 		return
 	}
 
-	if err = r.applyAppConfig(pod, targetContainerID, app); err != nil {
+	shellContextCM := &corev1.ConfigMap{}
+	err = r.Get(ctx, types.NamespacedName{
+		Namespace: "cliapp-system",
+		Name:      "cliapp-shell-context",
+	}, shellContextCM)
+	if err != nil {
+		log.Error(err, "unable to fetch configmap", "cm", "cliapp-shell-context")
+		shellContextCM = nil
+	}
+
+	if err = r.applyAppConfig(pod, targetContainerID, app, shellContextCM); err != nil {
 		return
 	}
 
@@ -45,13 +56,12 @@ func (r *CliAppReconciler) startApp(
 }
 
 const (
-	shellContextSyncImage = "docker.io/warmmetal/f2cm:v0.1.0"
-	appContextImage       = "docker.io/warmmetal/app-context-%s-%s:v0.1.0"
-	shellContextSidecar   = "shell-context-sync"
-	appContainer          = "workspace"
-	appRoot               = "/app-root"
-	appImageVolume        = "app"
-	csiDriverName         = "csi-image.warm-metal.tech"
+	appContextImage        = "docker.io/warmmetal/app-context-%s-%s:v0.1.0"
+	appContainer           = "workspace"
+	appRoot                = "/app-root"
+	appImageVolume         = "app"
+	csiImageDriverName     = "csi-image.warm-metal.tech"
+	csiConfigMapDriverName = "csi-cm.warm-metal.tech"
 )
 
 func (r *CliAppReconciler) convertToManifest(app *appcorev1.CliApp) (*corev1.Pod, error) {
@@ -68,7 +78,9 @@ func (r *CliAppReconciler) convertToManifest(app *appcorev1.CliApp) (*corev1.Pod
 
 var enabled = true
 
-func (r *CliAppReconciler) applyAppConfig(pod *corev1.Pod, targetContainerID int, app *appcorev1.CliApp) error {
+func (r *CliAppReconciler) applyAppConfig(
+	pod *corev1.Pod, targetContainerID int, app *appcorev1.CliApp, shellCtxCM *corev1.ConfigMap,
+) error {
 	var hostVolumes []corev1.Volume
 	var hostMounts []corev1.VolumeMount
 
@@ -104,11 +116,6 @@ func (r *CliAppReconciler) applyAppConfig(pod *corev1.Pod, targetContainerID int
 			Name:      volume,
 			MountPath: mountpoint,
 		})
-	}
-
-	sharedCtx := corev1.VolumeMount{
-		Name:      "shell-context",
-		MountPath: "/root",
 	}
 
 	var envs []corev1.EnvVar
@@ -163,13 +170,6 @@ func (r *CliAppReconciler) applyAppConfig(pod *corev1.Pod, targetContainerID int
 		pod.ObjectMeta.Labels[appLabel] = app.Name
 	}
 
-	pod.Spec.InitContainers = append(pod.Spec.InitContainers, corev1.Container{
-		Name:         "shell-context-initializer",
-		Image:        shellContextSyncImage,
-		Args:         []string{fmt.Sprintf("%s/%s=>/root", r.ControllerNamespace, ShellContextConfigMap)},
-		VolumeMounts: []corev1.VolumeMount{sharedCtx},
-	})
-
 	targetContainer := &pod.Spec.Containers[targetContainerID]
 
 	// exchange the target image
@@ -192,14 +192,43 @@ func (r *CliAppReconciler) applyAppConfig(pod *corev1.Pod, targetContainerID int
 	})
 
 	targetContainer.Env = append(targetContainer.Env, envs...)
-
 	targetContainer.Stdin = true
+
+	// hostpaths
+	pod.Spec.Volumes = append(pod.Spec.Volumes, hostVolumes...)
 	targetContainer.VolumeMounts = append(targetContainer.VolumeMounts, hostMounts...)
-	targetContainer.VolumeMounts = append(targetContainer.VolumeMounts, sharedCtx,
+
+	// the image volume
+	pod.Spec.Volumes = append(pod.Spec.Volumes,
+		corev1.Volume{
+			Name: appImageVolume,
+			VolumeSource: corev1.VolumeSource{
+				CSI: &corev1.CSIVolumeSource{
+					Driver: csiImageDriverName,
+					VolumeAttributes: map[string]string{
+						"image": targetImage,
+					},
+				},
+			},
+		})
+	targetContainer.VolumeMounts = append(targetContainer.VolumeMounts,
 		corev1.VolumeMount{
 			Name:      appImageVolume,
 			MountPath: appRoot,
 		})
+
+	// shell resource and history volumes
+	if shellCtxCM != nil {
+		switch sh {
+		case appcorev1.CliAppShellZsh:
+			installShellContext(pod, targetContainer, shellCtxCM, ".zshrc", ".zsh_history")
+		case appcorev1.CliAppShellBash:
+			installShellContext(pod, targetContainer, shellCtxCM, ".bash_profile", ".bash_history")
+		default:
+			panic(sh)
+		}
+	}
+
 	if targetContainer.SecurityContext == nil {
 		targetContainer.SecurityContext = &corev1.SecurityContext{
 			Capabilities: &corev1.Capabilities{
@@ -216,35 +245,54 @@ func (r *CliAppReconciler) applyAppConfig(pod *corev1.Pod, targetContainerID int
 				"SYS_ADMIN")
 		}
 	}
+	return nil
+}
 
-	pod.Spec.Containers = append(pod.Spec.Containers, corev1.Container{
-		Name:  shellContextSidecar,
-		Image: shellContextSyncImage,
-		Args: []string{
-			"-w",
-			fmt.Sprintf("/root=>%s/%s", r.ControllerNamespace, ShellContextConfigMap),
-		},
-		VolumeMounts: []corev1.VolumeMount{sharedCtx},
-	})
-
-	pod.Spec.Volumes = append(pod.Spec.Volumes, hostVolumes...)
-	pod.Spec.Volumes = append(pod.Spec.Volumes,
-		corev1.Volume{
-			Name: appImageVolume,
-			VolumeSource: corev1.VolumeSource{
-				CSI: &corev1.CSIVolumeSource{
-					Driver: csiDriverName,
-					VolumeAttributes: map[string]string{
-						"image": targetImage,
+func installShellContext(pod *corev1.Pod, container *corev1.Container, shellCM *corev1.ConfigMap, rc, history string) {
+	if len(shellCM.Data[rc]) > 0 {
+		pod.Spec.Volumes = append(pod.Spec.Volumes,
+			corev1.Volume{
+				Name: "shell-rc",
+				VolumeSource: corev1.VolumeSource{
+					CSI: &corev1.CSIVolumeSource{
+						Driver: csiConfigMapDriverName,
+						VolumeAttributes: map[string]string{
+							"configMap":         "cliapp-shell-context",
+							"namespace":         "cliapp-system",
+							"subPath":           rc,
+							"keepCurrentAlways": "true",
+						},
 					},
 				},
-			},
-		},
-		corev1.Volume{
-			Name: "shell-context",
-			VolumeSource: corev1.VolumeSource{
-				EmptyDir: &corev1.EmptyDirVolumeSource{},
-			},
-		})
-	return nil
+			})
+		container.VolumeMounts = append(container.VolumeMounts,
+			corev1.VolumeMount{
+				Name:      "shell-rc",
+				MountPath: "/root/" + rc,
+			})
+	}
+
+	if _, found := shellCM.Data[history]; found {
+		pod.Spec.Volumes = append(pod.Spec.Volumes,
+			corev1.Volume{
+				Name: "shell-history",
+				VolumeSource: corev1.VolumeSource{
+					CSI: &corev1.CSIVolumeSource{
+						Driver: csiConfigMapDriverName,
+						VolumeAttributes: map[string]string{
+							"configMap":       "cliapp-shell-context",
+							"namespace":       "cliapp-system",
+							"subPath":         history,
+							"commitChangesOn": "unmount",
+							"conflictPolicy":  "override",
+						},
+					},
+				},
+			})
+		container.VolumeMounts = append(container.VolumeMounts,
+			corev1.VolumeMount{
+				Name:      "shell-history",
+				MountPath: "/root/" + history,
+			})
+	}
 }
