@@ -5,3 +5,4 @@ metadata:
   namespace: system
 data:
   .bash_history: ""
+  .zsh_history: ""

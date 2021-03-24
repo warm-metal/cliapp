@@ -50,9 +50,10 @@ type CliAppReconciler struct {
 }
 
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;create;update;patch;delete;deletecollection
-//+kubebuilder:rbac:groups="extensions",resources=deployments;daemonset;replicaset,verbs=get
-//+kubebuilder:rbac:groups="apps",resources=replicaset;daemonset;statefulsets;deployments,verbs=get
-//+kubebuilder:rbac:groups="batch",resources=cronjobs;jobs;,verbs=get
+//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list
+//+kubebuilder:rbac:groups="extensions",resources=deployments;daemonsets;replicasets,verbs=get
+//+kubebuilder:rbac:groups="apps",resources=replicasets;daemonsets;statefulsets;deployments,verbs=get
+//+kubebuilder:rbac:groups="batch",resources=cronjobs;jobs,verbs=get
 //+kubebuilder:rbac:groups=core.cliapp.warm-metal.tech,resources=cliapps,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core.cliapp.warm-metal.tech,resources=cliapps/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=core.cliapp.warm-metal.tech,resources=cliapps/finalizers,verbs=update
