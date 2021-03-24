@@ -56,7 +56,7 @@ func (r *CliAppReconciler) startApp(
 }
 
 const (
-	appContextImage        = "docker.io/warmmetal/app-context-%s-%s:v0.1.0"
+	appContextImage        = "docker.io/warmmetal/app-context-%s-%s:latest"
 	appContainer           = "workspace"
 	appRoot                = "/app-root"
 	appImageVolume         = "app"
