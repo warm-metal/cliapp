@@ -50,7 +50,7 @@ type CliAppReconciler struct {
 }
 
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;create;update;patch;delete;deletecollection
-//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list
+//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
 //+kubebuilder:rbac:groups="extensions",resources=deployments;daemonsets;replicasets,verbs=get
 //+kubebuilder:rbac:groups="apps",resources=replicasets;daemonsets;statefulsets;deployments,verbs=get
 //+kubebuilder:rbac:groups="batch",resources=cronjobs;jobs,verbs=get
