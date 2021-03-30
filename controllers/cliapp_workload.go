@@ -285,6 +285,7 @@ func installShellContext(pod *corev1.Pod, container *corev1.Container, shellCM *
 							"subPath":         history,
 							"commitChangesOn": "unmount",
 							"conflictPolicy":  "override",
+							"oversizePolicy":  "truncateHeadLine",
 						},
 					},
 				},
