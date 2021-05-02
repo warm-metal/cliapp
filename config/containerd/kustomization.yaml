@@ -4,4 +4,3 @@ bases:
 
 patchesStrategicMerge:
 - buildkit_host_path_patch.yaml
-- csi_image_host_path_patch.yaml

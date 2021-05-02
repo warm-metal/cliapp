@@ -161,13 +161,13 @@ metadata:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: csi-configmap-warm-metal
-  namespace: system
+  name: csi-image-warm-metal
+  namespace: kube-system
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: csi-image-warm-metal
+  name: csi-configmap-warm-metal
   namespace: system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -391,6 +391,7 @@ rules:
   - ""
   resources:
   - secrets
+  - pods
   verbs:
   - get
 ---
@@ -484,7 +485,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: csi-image-warm-metal
-  namespace: system
+  namespace: kube-system
 ---
 apiVersion: v1
 data:
@@ -539,7 +540,7 @@ data:
     [worker.containerd]
       address = "/run/containerd/containerd.sock"
       enabled = true
-      platforms = [ "linux/amd64", "linux/arm64" ]
+      platforms = [ "linux/amd64" ]
       namespace = "k8s.io"
       gc = true
       [[worker.containerd.gcpolicy]]
@@ -547,7 +548,7 @@ data:
         keepDuration = 3600
 kind: ConfigMap
 metadata:
-  name: buildkitd.toml-6t6kb8d247
+  name: buildkitd.toml-55httfg5dm
 ---
 apiVersion: v1
 kind: Service
@@ -778,6 +779,105 @@ spec:
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
+  name: csi-image-warm-metal
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app: csi-image-warm-metal
+  template:
+    metadata:
+      labels:
+        app: csi-image-warm-metal
+    spec:
+      containers:
+      - args:
+        - --csi-address=/csi/csi.sock
+        - --kubelet-registration-path=/var/lib/kubelet/plugins/csi-image.warm-metal.tech/csi.sock
+        env:
+        - name: KUBE_NODE_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
+        image: quay.io/k8scsi/csi-node-driver-registrar:v1.1.0
+        imagePullPolicy: IfNotPresent
+        lifecycle:
+          preStop:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - rm -rf /registration/csi-image.warm-metal.tech /registration/csi-image.warm-metal.tech-reg.sock
+        name: node-driver-registrar
+        volumeMounts:
+        - mountPath: /csi
+          name: socket-dir
+        - mountPath: /registration
+          name: registration-dir
+      - args:
+        - --endpoint=$(CSI_ENDPOINT)
+        - --node=$(KUBE_NODE_NAME)
+        - --containerd-addr=$(CRI_ADDR)
+        env:
+        - name: CSI_ENDPOINT
+          value: unix:///csi/csi.sock
+        - name: HOST_ROOTFS
+          value: /host
+        - name: CRI_ADDR
+          value: unix:///run/containerd/containerd.sock
+        - name: KUBE_NODE_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        image: docker.io/warmmetal/csi-image:v0.4.2
+        imagePullPolicy: IfNotPresent
+        name: plugin
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - mountPath: /csi
+          name: socket-dir
+        - mountPath: /var/lib/kubelet/pods
+          mountPropagation: Bidirectional
+          name: mountpoint-dir
+        - mountPath: /run/containerd/containerd.sock
+          name: runtime-socket
+        - mountPath: /host
+          mountPropagation: Bidirectional
+          name: host-rootfs
+      hostNetwork: true
+      serviceAccountName: csi-image-warm-metal
+      volumes:
+      - hostPath:
+          path: /var/lib/kubelet/plugins/csi-image.warm-metal.tech
+          type: DirectoryOrCreate
+        name: socket-dir
+      - hostPath:
+          path: /var/lib/kubelet/pods
+          type: DirectoryOrCreate
+        name: mountpoint-dir
+      - hostPath:
+          path: /var/lib/kubelet/plugins_registry
+          type: Directory
+        name: registration-dir
+      - hostPath:
+          path: /
+          type: Directory
+        name: host-rootfs
+      - hostPath:
+          path: /run/containerd/containerd.sock
+          type: Socket
+        name: runtime-socket
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
   name: csi-configmap-warm-metal
   namespace: system
 spec:
@@ -857,98 +957,6 @@ spec:
           path: /var/lib/warm-metal/cm-volume
           type: DirectoryOrCreate
         name: cm-source-root
----
-apiVersion: apps/v1
-kind: DaemonSet
-metadata:
-  name: csi-image-warm-metal
-  namespace: system
-spec:
-  selector:
-    matchLabels:
-      app: csi-image-warm-metal
-  template:
-    metadata:
-      labels:
-        app: csi-image-warm-metal
-    spec:
-      containers:
-      - args:
-        - -endpoint=$(CSI_ENDPOINT)
-        - -node=$(KUBE_NODE_NAME)
-        - -containerd-addr=$(CONTAINERD_ADDRESS)
-        env:
-        - name: CSI_ENDPOINT
-          value: unix:///csi/csi.sock
-        - name: CONTAINERD_ADDRESS
-          value: unix:///run/containerd/containerd.sock
-        - name: KUBE_NODE_NAME
-          valueFrom:
-            fieldRef:
-              apiVersion: v1
-              fieldPath: spec.nodeName
-        image: warmmetal/csi-image:latest
-        imagePullPolicy: IfNotPresent
-        name: plugin
-        securityContext:
-          privileged: true
-        volumeMounts:
-        - mountPath: /var/lib/containerd
-          name: snapshot-home
-        - mountPath: /csi
-          name: socket-dir
-        - mountPath: /var/lib/kubelet/pods
-          mountPropagation: Bidirectional
-          name: mountpoint-dir
-        - mountPath: /run/containerd/containerd.sock
-          name: runtime-socket
-      - args:
-        - --csi-address=/csi/csi.sock
-        - --kubelet-registration-path=/var/lib/kubelet/plugins/csi-image.warm-metal.tech/csi.sock
-        env:
-        - name: KUBE_NODE_NAME
-          valueFrom:
-            fieldRef:
-              apiVersion: v1
-              fieldPath: spec.nodeName
-        image: quay.io/k8scsi/csi-node-driver-registrar:v1.1.0
-        imagePullPolicy: IfNotPresent
-        lifecycle:
-          preStop:
-            exec:
-              command:
-              - /bin/sh
-              - -c
-              - rm -rf /registration/csi-image.warm-metal.tech /registration/csi-image.warm-metal.tech-reg.sock
-        name: node-driver-registrar
-        volumeMounts:
-        - mountPath: /csi
-          name: socket-dir
-        - mountPath: /registration
-          name: registration-dir
-      hostNetwork: true
-      serviceAccountName: csi-image-warm-metal
-      volumes:
-      - hostPath:
-          path: /var/lib/containerd
-          type: Directory
-        name: snapshot-home
-      - hostPath:
-          path: /var/lib/kubelet/plugins/csi-image.warm-metal.tech
-          type: DirectoryOrCreate
-        name: socket-dir
-      - hostPath:
-          path: /var/lib/kubelet/pods
-          type: DirectoryOrCreate
-        name: mountpoint-dir
-      - hostPath:
-          path: /var/lib/kubelet/plugins_registry
-          type: Directory
-        name: registration-dir
-      - hostPath:
-          path: /run/containerd/containerd.sock
-          type: Socket
-        name: runtime-socket
 ---
 apiVersion: storage.k8s.io/v1
 kind: CSIDriver

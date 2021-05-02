@@ -16,7 +16,7 @@ insecure-entitlements = [ "network.host", "security.insecure" ]
 [worker.containerd]
   address = "/run/containerd/containerd.sock"
   enabled = true
-  platforms = [ "linux/amd64", "linux/arm64" ]
+  platforms = [ "linux/amd64" ]
   namespace = "k8s.io"
   gc = true
   [[worker.containerd.gcpolicy]]
