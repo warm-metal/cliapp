@@ -37,7 +37,7 @@ spec:
         owner: warm-metal.tech
     spec:
       containers:
-        - image: docker.io/warmmetal/buildkit:0.8.1-1
+        - image: docker.io/warmmetal/buildkit:0.8.3-0
           env:
             - name: BUILDKIT_STEP_LOG_MAX_SIZE
               value: "-1"
