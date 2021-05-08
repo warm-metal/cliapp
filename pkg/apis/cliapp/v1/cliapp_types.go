@@ -139,7 +139,7 @@ type CliAppStatus struct {
 	// +optional
 	PodName string `json:"podName,omitempty"`
 
-	// Specify Errors on reconcile
+	// Specify Errors on reconcile.
 	// +optional
 	Error string `json:"error,omitempty"`
 }

@@ -3,6 +3,7 @@ module github.com/warm-metal/cliapp
 go 1.15
 
 require (
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-logr/logr v0.3.0
 	github.com/moby/buildkit v0.8.1
 	github.com/onsi/ginkgo v1.14.1

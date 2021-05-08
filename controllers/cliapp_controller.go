@@ -91,12 +91,12 @@ func (r *CliAppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res
 		return
 	}
 
-	if app.Spec.TargetPhase == app.Status.Phase {
-		return
-	}
-
 	switch app.Spec.TargetPhase {
 	case appcorev1.CliAppPhaseRest:
+		if app.Spec.TargetPhase == app.Status.Phase {
+			return
+		}
+
 		result, err = r.makeAppRest(ctx, log, app)
 	case appcorev1.CliAppPhaseLive:
 		result, err = r.makeAppLive(ctx, log, app)

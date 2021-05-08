@@ -24,6 +24,8 @@ func (r *CliAppReconciler) makeAppRest(ctx context.Context, log logr.Logger, app
 		if !app.Spec.UninstallUnlessLive {
 			targetPhase = appcorev1.CliAppPhaseWaitingForSessions
 			result.RequeueAfter = r.DurationIdleLiveLasts
+		} else {
+			app.Status.PodName = ""
 		}
 
 		if err = r.transitPhaseTo(ctx, log, app, targetPhase); err != nil {

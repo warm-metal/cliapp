@@ -46,7 +46,7 @@ func (r *CliAppReconciler) fetchForkTargetPod(
 
 	config, err := r.RestClient.ToRESTConfig()
 	if err != nil {
-
+		panic(err)
 	}
 
 	clientset, err := kubernetes.NewForConfig(config)
