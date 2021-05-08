@@ -2,17 +2,21 @@ package controllers
 
 import (
 	"context"
+	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/go-logr/logr"
 	appcorev1 "github.com/warm-metal/cliapp/pkg/apis/cliapp/v1"
 	"github.com/warm-metal/cliapp/pkg/utils"
 	"golang.org/x/xerrors"
+	"hash"
+	"hash/fnv"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/json"
+	"k8s.io/apimachinery/pkg/util/rand"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"time"
 )
 
 func (r *CliAppReconciler) makeAppLive(
@@ -50,55 +54,58 @@ func (r *CliAppReconciler) makeAppLive(
 		err = r.transitPhaseTo(ctx, log, app, appcorev1.CliAppPhaseRecovering)
 		result.Requeue = true
 		return
+	case appcorev1.CliAppPhaseLive:
+		specHash := computeHash(&app.Spec)
+		specDump := encodeSpec(&app.Spec)
+		var newPod *corev1.Pod
+		newPod, err = r.claimPods(ctx, log, app, specDump, specHash)
+		if err != nil {
+			return
+		}
+
+		if newPod != nil && utils.IsPodReady(newPod) {
+			if app.Status.PodName != newPod.Name {
+				app.Status.PodName = newPod.Name
+				if err = r.Status().Update(ctx, app); err != nil {
+					log.Error(err, "unable to update app")
+					return
+				}
+			}
+
+			return
+		}
+
+		app.Status.PodName = ""
+		if err = r.transitPhaseTo(ctx, log, app, appcorev1.CliAppPhaseRecovering); err != nil {
+			return
+		}
+
+		return
+
 	case appcorev1.CliAppPhaseRecovering:
-		if len(app.Status.PodName) > 0 {
-			pod := corev1.Pod{}
-			err = r.Get(ctx, types.NamespacedName{Name: app.Status.PodName, Namespace: app.Namespace}, &pod)
-			if err != nil && !errors.IsNotFound(err) {
-				log.Error(err, "unable to get app Pod")
+		specHash := computeHash(&app.Spec)
+		specDump := encodeSpec(&app.Spec)
+		var newPod *corev1.Pod
+		newPod, err = r.claimPods(ctx, log, app, specDump, specHash)
+		if err != nil {
+			return
+		}
+
+		if newPod != nil {
+			if utils.IsPodReady(newPod) {
+				app.Status.PodName = newPod.Name
+				if err = r.transitPhaseTo(ctx, log, app, appcorev1.CliAppPhaseLive); err != nil {
+					return
+				}
 				return
 			}
 
-			if errors.IsNotFound(err) {
-				elapse := metav1.Now().Sub(app.Status.LastPhaseTransition.Time)
-				if elapse < 10*time.Second {
-					log.Info("pod not found. will wait at most 10 seconds before recreating")
-					result.RequeueAfter = 10*time.Second - elapse
-					return result, xerrors.Errorf("pod not found. will create %s later", result.RequeueAfter)
-				}
-			}
-
-			if err == nil {
-				if utils.IsPodReady(&pod) {
-					if err = r.transitPhaseTo(ctx, log, app, appcorev1.CliAppPhaseLive); err != nil {
-						return
-					}
-					return
-				}
-
-				if pod.DeletionTimestamp == nil {
-					log.Info("wait for pod to be ready", "pod", app.Status.PodName)
-					return
-				}
-
-				log.Info("pod is terminating. will create a new one.", "pod", app.Status.PodName)
-			}
+			log.Info("wait for pod to be ready", "pod", newPod.Name)
+			return
 		}
 
 		log.Info("create pod")
-		pod, err := r.startApp(ctx, app, log)
-		if err == nil {
-			app.Status.PodName = pod.Name
-			if err := r.Status().Update(ctx, app); err != nil {
-				log.Error(err, "unable to save pod name to app. delete pod", "pod", pod.Name)
-				if err := r.Delete(ctx, pod); err != nil {
-					log.Error(err, "unable to delete pod", "pod", pod.Name)
-				}
-
-				return result, err
-			}
-		}
-
+		_, err = r.startApp(ctx, app, log, specDump, specHash)
 		return result, err
 
 	case appcorev1.CliAppPhaseBuilding:
@@ -130,4 +137,93 @@ func (r *CliAppReconciler) makeAppLive(
 	default:
 		panic(app.Status.Phase)
 	}
+}
+
+func computeHash(spec *appcorev1.CliAppSpec) string {
+	podTemplateSpecHasher := fnv.New32a()
+	deepHashObject(podTemplateSpecHasher, *spec)
+	return rand.SafeEncodeString(fmt.Sprint(podTemplateSpecHasher.Sum32()))
+}
+
+func encodeSpec(spec *appcorev1.CliAppSpec) string {
+	bytes, err := json.Marshal(spec)
+	if err != nil {
+		panic(err)
+	}
+
+	return string(bytes)
+}
+
+func deepHashObject(hasher hash.Hash, objectToWrite interface{}) {
+	hasher.Reset()
+	printer := spew.ConfigState{
+		Indent:         " ",
+		SortKeys:       true,
+		DisableMethods: true,
+		SpewKeys:       true,
+	}
+	printer.Fprintf(hasher, "%#v", objectToWrite)
+}
+
+func (r *CliAppReconciler) claimPods(
+	ctx context.Context, log logr.Logger, app *appcorev1.CliApp, specDump, specHash string,
+) (pod *corev1.Pod, err error) {
+	config, err := r.RestClient.ToRESTConfig()
+	if err != nil {
+		panic(err)
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return
+	}
+
+	podList, err := clientset.CoreV1().Pods(app.Namespace).List(
+		ctx, metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", appLabel, app.Name)},
+	)
+	if err != nil {
+		err = xerrors.Errorf(`unable to fetch pods: %s`, err)
+		return
+	}
+
+	oldPods := make([]*corev1.Pod, 0, len(podList.Items))
+	newPods := make([]*corev1.Pod, 0, len(podList.Items))
+	for i := range podList.Items {
+		pod := &podList.Items[i]
+		if pod.DeletionTimestamp != nil {
+			continue
+		}
+
+		if len(pod.Annotations) == 0 ||
+			pod.Annotations[annoKeySpecHash] != specHash ||
+			pod.Annotations[annoKeySpecDump] == "" {
+
+			oldPods = append(oldPods, pod)
+		}
+
+		if pod.Annotations[annoKeySpecDump] != specDump {
+			oldPods = append(oldPods, pod)
+		} else {
+			newPods = append(newPods, pod)
+		}
+	}
+
+	if len(newPods) > 1 {
+		log.Info("more than 1 new pods are found and will be terminated except the first one",
+			"numPods", len(newPods))
+		oldPods = append(oldPods, newPods[1:]...)
+	}
+
+	for _, pod := range oldPods {
+		log.Info("recycle old pod", "pod", pod.Name)
+		if err := clientset.CoreV1().Pods(app.Namespace).Delete(ctx, pod.Name, metav1.DeleteOptions{}); err != nil {
+			log.Error(err, "unable to delete old pod", "pod", pod.Name)
+		}
+	}
+
+	if len(newPods) > 0 {
+		pod = newPods[0]
+	}
+
+	return
 }

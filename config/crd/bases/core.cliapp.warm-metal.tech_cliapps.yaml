@@ -139,7 +139,7 @@ spec:
             description: CliAppStatus defines the observed state of CliApp
             properties:
               error:
-                description: Specify Errors on reconcile
+                description: Specify Errors on reconcile.
                 type: string
               lastPhaseTransition:
                 description: Timestamp of the last phase transition

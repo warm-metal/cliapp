@@ -19,7 +19,7 @@ const (
 )
 
 func (r *CliAppReconciler) startApp(
-	ctx context.Context, app *appcorev1.CliApp, log logr.Logger,
+	ctx context.Context, app *appcorev1.CliApp, log logr.Logger, specDump, specHash string,
 ) (pod *corev1.Pod, err error) {
 	targetContainerID := 0
 	if app.Spec.Fork != nil {
@@ -47,6 +47,13 @@ func (r *CliAppReconciler) startApp(
 		return
 	}
 
+	if pod.Annotations == nil {
+		pod.Annotations = map[string]string{}
+	}
+
+	pod.Annotations[annoKeySpecDump] = specDump
+	pod.Annotations[annoKeySpecHash] = specHash
+
 	log.Info("create pod", "pod", pod.Name, "namespace", pod.Namespace, "labels", pod.Labels)
 	if err = r.Create(ctx, pod); err != nil {
 		log.Error(err, "unable to create pod")
@@ -62,6 +69,8 @@ const (
 	appImageVolume         = "app"
 	csiImageDriverName     = "csi-image.warm-metal.tech"
 	csiConfigMapDriverName = "csi-cm.warm-metal.tech"
+	annoKeySpecHash        = "cliapp.warm-metal.tech/spec-hash"
+	annoKeySpecDump        = "cliapp.warm-metal.tech/spec"
 )
 
 func (r *CliAppReconciler) convertToManifest(app *appcorev1.CliApp) (*corev1.Pod, error) {
