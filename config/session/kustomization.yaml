@@ -2,3 +2,10 @@ resources:
 - shell_context_cm.yaml
 - shell_context_rbac.yaml
 - session-gate.yaml
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+images:
+- name: session-gate
+  newName: docker.io/warmmetal/session-gate
+  newTag: v0.3.0

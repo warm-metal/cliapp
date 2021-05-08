@@ -681,7 +681,7 @@ spec:
         app: session-gate
     spec:
       containers:
-      - image: docker.io/warmmetal/session-gate:v0.2.0
+      - image: docker.io/warmmetal/session-gate:v0.3.0
         name: session-gate
         ports:
         - containerPort: 8001

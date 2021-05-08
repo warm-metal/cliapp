@@ -1,0 +1,27 @@
+syntax = "proto3";
+package session;
+
+service AppGate {
+    rpc OpenShell(stream StdIn) returns(stream StdOut) {}
+}
+
+message App {
+    string name = 1;
+    string namespace = 2;
+}
+
+message TerminalSize {
+    uint32 Width = 1;
+    uint32 Height = 2;
+}
+
+message StdIn {
+    App App = 1;
+    repeated string Input = 2;
+    TerminalSize TerminalSize = 3;
+}
+
+message StdOut {
+    bytes Output = 1;
+    bool Raw = 2;
+}
