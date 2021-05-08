@@ -92,6 +92,6 @@ spec:
       serviceAccountName: session-gate
       containers:
         - name: session-gate
-          image: docker.io/warmmetal/session-gate:v0.2.0
+          image: session-gate:latest
           ports:
             - containerPort: 8001

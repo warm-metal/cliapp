@@ -1,6 +1,7 @@
 
 # Image URL to use all building/pushing image targets
 IMG ?= docker.io/warmmetal/cliapp-controller:v0.4.0
+SESSION_GATE_IMAGE ?= docker.io/warmmetal/session-gate:v0.3.0
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
 
@@ -23,6 +24,7 @@ test: generate fmt vet manifests
 # Build manager binary
 manager: generate fmt vet
 	go build -o bin/manager ./cmd/manager
+	go build -o bin/session-gate ./cmd/session-gate
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run: generate fmt vet manifests
@@ -37,29 +39,32 @@ uninstall: manifests kustomize
 	$(KUSTOMIZE) build config/crd | kubectl delete -f -
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy: manifests kustomize
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+deploy: manifests kustomize update-manifest-images
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
 # UnDeploy controller from the configured Kubernetes cluster in ~/.kube/config
 undeploy:
 	$(KUSTOMIZE) build config/default | kubectl delete -f -
 
-minikube: manifests kustomize
+minikube: manifests kustomize update-manifest-images
 	$(KUSTOMIZE) build config/minikube | kubectl apply -f -
 
 unminikube:
 	$(KUSTOMIZE) build config/minikube | kubectl delete -f -
 
-containerd: manifests kustomize
+containerd: manifests kustomize update-manifest-images
 	$(KUSTOMIZE) build config/containerd | kubectl apply -f -
 
-dump-manifest: manifests kustomize
+dump-manifest: manifests kustomize update-manifest-images
 	$(KUSTOMIZE) build config/minikube > config/samples/minikube.yaml
 	$(KUSTOMIZE) build config/containerd > config/samples/containerd.yaml
 
 uncontainerd:
 	$(KUSTOMIZE) build config/containerd | kubectl delete -f -
+
+update-manifest-images:
+	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+	cd config/session && $(KUSTOMIZE) edit set image session-gate=${SESSION_GATE_IMAGE}
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen
@@ -74,16 +79,16 @@ vet:
 	go vet ./...
 
 # Generate code
-generate: controller-gen
+generate: controller-gen session-rpc-gen
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+
+session-rpc-gen:
+	go generate ./cmd/session-gate/
 
 # Build the docker image
 docker-build:
-	kubectl dev build -t ${IMG} -f manager.dockerfile .
-
-# Push the docker image
-docker-push:
-	docker push ${IMG}
+	kubectl dev build -t ${IMG} --target manager --push
+	kubectl dev build -t ${SESSION_GATE_IMAGE} --target session-gate --push
 
 # Download controller-gen locally if necessary
 CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
