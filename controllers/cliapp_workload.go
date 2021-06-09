@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/go-logr/logr"
 	appcorev1 "github.com/warm-metal/cliapp/pkg/apis/cliapp/v1"
@@ -12,6 +13,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/rand"
 	"path/filepath"
 	"strings"
+
+	cri "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 const (
@@ -43,7 +46,7 @@ func (r *CliAppReconciler) startApp(
 		shellContextCM = nil
 	}
 
-	if err = r.applyAppConfig(pod, targetContainerID, app, shellContextCM); err != nil {
+	if err = r.applyAppConfig(ctx, log, pod, targetContainerID, app, shellContextCM); err != nil {
 		return
 	}
 
@@ -88,7 +91,8 @@ func (r *CliAppReconciler) convertToManifest(app *appcorev1.CliApp) (*corev1.Pod
 var enabled = true
 
 func (r *CliAppReconciler) applyAppConfig(
-	pod *corev1.Pod, targetContainerID int, app *appcorev1.CliApp, shellCtxCM *corev1.ConfigMap,
+	ctx context.Context, log logr.Logger, pod *corev1.Pod, targetContainerID int, app *appcorev1.CliApp,
+	shellCtxCM *corev1.ConfigMap,
 ) error {
 	var hostVolumes []corev1.Volume
 	var hostMounts []corev1.VolumeMount
@@ -200,6 +204,30 @@ func (r *CliAppReconciler) applyAppConfig(
 		Value: string(sh),
 	})
 
+	workdir, paths, err := r.fetchImageConfiguration(ctx, log, targetImage)
+	if err != nil {
+		return err
+	}
+
+	log.Info("spec of image", "image", targetImage, "workdir", workdir, "path", paths)
+
+	if paths != "" {
+		pathArray := strings.Split(paths, ":")
+		envPaths := make([]string, len(pathArray))
+		for i := range pathArray {
+			envPaths[i] = filepath.Join(appRoot, pathArray[i])
+		}
+
+		targetContainer.Env = append(targetContainer.Env, corev1.EnvVar{
+			Name:  "PATH",
+			Value: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:" + strings.Join(envPaths, ":"),
+		})
+	}
+
+	if targetContainer.WorkingDir == "" && workdir != "" {
+		targetContainer.WorkingDir = filepath.Join(appRoot, workdir)
+	}
+
 	targetContainer.Env = append(targetContainer.Env, envs...)
 	targetContainer.Stdin = true
 
@@ -305,4 +333,49 @@ func installShellContext(pod *corev1.Pod, container *corev1.Container, shellCM *
 				MountPath: "/root/" + history,
 			})
 	}
+}
+
+type imageInfo struct {
+	Spec struct {
+		Config struct {
+			Env        []string `json:"Env,omitempty"`
+			WorkingDir string   `json:"WorkingDir,omitempty"`
+		} `json:"config,omitempty"`
+	} `json:"imageSpec,omitempty"`
+}
+
+func (r *CliAppReconciler) fetchImageConfiguration(ctx context.Context, log logr.Logger, image string) (workdir string, paths string, err error) {
+	resp, err := r.CRIImage.ImageStatus(ctx, &cri.ImageStatusRequest{
+		Image:   &cri.ImageSpec{Image: image},
+		Verbose: true,
+	})
+
+	if err != nil {
+		return
+	}
+
+	if len(resp.Info) == 0 {
+		log.Info("no info found for image", "image", image)
+		return
+	}
+
+	if resp.Info["info"] == "" {
+		log.Info("no image info found for image", "image", image)
+		return
+	}
+
+	info := imageInfo{}
+	if err = json.Unmarshal([]byte(resp.Info["info"]), &info); err != nil {
+		log.Error(err, "unable to decode the image spec", "image", image, "spec", resp.Info["info"])
+		return
+	}
+
+	for _, env := range info.Spec.Config.Env {
+		if strings.HasPrefix(env, "PATH=") {
+			paths = env[len("PATH="):]
+			break
+		}
+	}
+
+	return info.Spec.Config.WorkingDir, paths, nil
 }

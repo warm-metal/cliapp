@@ -90,7 +90,7 @@ func (t *terminalGate) attach(app *appcorev1.CliApp, cmd []string, in *clientRea
 	if len(app.Spec.Command) > 0 {
 		opts.Command = append([]string{"chroot", "/app-root"}, append(app.Spec.Command, cmd...)...)
 	} else {
-		// For debug command
+		// For debug command, the cmd usually is bash or zsh.
 		opts.Command = cmd
 	}
 

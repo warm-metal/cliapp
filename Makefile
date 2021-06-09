@@ -1,6 +1,6 @@
 
 # Image URL to use all building/pushing image targets
-IMG ?= docker.io/warmmetal/cliapp-controller:v0.4.0
+IMG ?= docker.io/warmmetal/cliapp-controller:v0.5.0
 SESSION_GATE_IMAGE ?= docker.io/warmmetal/session-gate:v0.3.0
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
@@ -87,8 +87,8 @@ session-rpc-gen:
 
 # Build the docker image
 docker-build:
-	kubectl dev build -t ${IMG} --target manager --push
-	kubectl dev build -t ${SESSION_GATE_IMAGE} --target session-gate --push
+	kubectl dev build -t ${IMG} --target manager
+	kubectl dev build -t ${SESSION_GATE_IMAGE} --target session-gate
 
 # Download controller-gen locally if necessary
 CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
