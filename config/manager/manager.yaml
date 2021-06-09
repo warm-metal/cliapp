@@ -22,15 +22,16 @@ spec:
       labels:
         control-plane: controller-manager
     spec:
-      securityContext:
-        runAsUser: 65532
       containers:
       - command:
         - /manager
+        args:
+        - --cri-image-service-url=unix:///run/containerd/containerd.sock
         image: controller:latest
         name: manager
-        securityContext:
-          allowPrivilegeEscalation: false
+        volumeMounts:
+        - mountPath: /run/containerd/containerd.sock
+          name: runtime-socket
         livenessProbe:
           httpGet:
             path: /healthz
@@ -51,3 +52,8 @@ spec:
             cpu: 100m
             memory: 20Mi
       terminationGracePeriodSeconds: 10
+      volumes:
+      - hostPath:
+          path: /run/containerd/containerd.sock
+          type: Socket
+        name: runtime-socket

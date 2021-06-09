@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM golang:1.16 as builder
+FROM docker.io/library/golang:1.16-alpine3.13 as builder
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
@@ -20,10 +20,9 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o session-gate ./cmd/session
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM gcr.io/distroless/static:nonroot as manager
+FROM alpine:3.13 as manager
 WORKDIR /
 COPY --from=builder /workspace/manager .
-USER 65532:65532
 
 ENTRYPOINT ["/manager"]
 

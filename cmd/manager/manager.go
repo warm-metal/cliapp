@@ -17,8 +17,11 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
+	"github.com/go-logr/logr"
 	"github.com/warm-metal/cliapp/pkg/utils"
+	"google.golang.org/grpc"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/discovery"
@@ -27,6 +30,7 @@ import (
 	"k8s.io/client-go/restmapper"
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"time"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -43,6 +47,9 @@ import (
 	appcorev1 "github.com/warm-metal/cliapp/pkg/apis/cliapp/v1"
 	configv1 "github.com/warm-metal/cliapp/pkg/apis/config/v1"
 	//+kubebuilder:scaffold:imports
+
+	cri "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
+	"k8s.io/kubernetes/pkg/kubelet/util"
 )
 
 var (
@@ -63,6 +70,9 @@ func main() {
 		"The controller will load its initial configuration from this file. "+
 			"Omit this flag to use the default configuration values. "+
 			"Command-line flags override configuration from this file.")
+
+	var criEndpoint string
+	flag.StringVar(&criEndpoint, "cri-image-service-url", "", "The URL of the CRI image service")
 
 	opts := zap.Options{
 		Development: true,
@@ -111,7 +121,15 @@ func main() {
 		ctrlConfig.DefaultShell = string(appcorev1.CliAppShellBash)
 	}
 
+	criConn, err := newCRIConnection(setupLog, criEndpoint, time.Minute)
+	if err != nil {
+		os.Exit(1)
+	}
+
+	defer criConn.Close()
+
 	if err = (&controllers.CliAppReconciler{
+		CRIImage:               cri.NewImageServiceClient(criConn),
 		RestClient:             clientGetter(mgr),
 		Client:                 mgr.GetClient(),
 		Log:                    ctrl.Log.WithName("controllers").WithName("CliApp"),
@@ -143,6 +161,28 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+func newCRIConnection(logger logr.Logger, endpoint string, connectionTimeout time.Duration) (*grpc.ClientConn, error) {
+	addr, dialer, err := util.GetAddressAndDialer(endpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), connectionTimeout)
+	defer cancel()
+
+	conn, err := grpc.DialContext(
+		ctx, addr, grpc.WithInsecure(), grpc.WithContextDialer(dialer),
+		grpc.WithBlock(),
+	)
+
+	if err != nil {
+		logger.Error(err, "unable to connect to cri image service", "addr", addr)
+		return nil, err
+	}
+
+	return conn, nil
 }
 
 func clientGetter(mgr manager.Manager) resource.RESTClientGetter {
